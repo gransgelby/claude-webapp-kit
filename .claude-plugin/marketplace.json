@@ -1,0 +1,15 @@
+{
+  "name": "andreas-plugins",
+  "owner": {
+    "name": "Andreas",
+    "email": "11415493+gransgelby@users.noreply.github.com"
+  },
+  "description": "Andreas egna Claude Code-plugins.",
+  "plugins": [
+    {
+      "name": "webapp-kit",
+      "source": "./",
+      "description": "Arbetssätt för webbappar med Claude Code: batch-jobb + live-dashboard, obevakade långpass med subagenter, doc-roll-system, visuell design-process (shadcn + tokens) och skärmdumps-tooling."
+    }
+  ]
+}
