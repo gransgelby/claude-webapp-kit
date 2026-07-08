@@ -1,0 +1,509 @@
+<!doctype html>
+<!-- Batch live-dashboard template (webapp-kit).
+     Per batch, pick a UNIQUE localStorage key prefix and replace every "wk0000"
+     below with it (e.g. "b0708n") so a new batch starts with a clean welcome
+     screen / timer / seen-set and doesn't collide with a previous batch's state.
+     The data file it re-injects is templates/batch-dashboard-data.js (rewritten by
+     the batch process per status change); background image lives in batch-img/. -->
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Batch – live</title>
+<style>
+  :root{font-size:16px;--tx:#eaf2ee;--tx2:#a7c0b4;--tx3:#7d968a;--line:#2f4038;
+    --wait:#8aa398;--start:#5fa8e0;--active:#f2b34d;--test:#c08ae8;--done:#2fd39a;--block:#ef6b6b}
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{min-height:100%;background:#0a120e;color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  .bg{position:fixed;inset:0;z-index:0;background:#0a120e url("batch-img/bg.jpg") center/cover no-repeat}
+  .scrim{position:fixed;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(7,15,11,.78) 0%,rgba(7,15,11,.5) 34%,rgba(7,15,11,.2) 64%,rgba(7,15,11,.30) 100%)}
+  .page{position:relative;z-index:2;height:100vh;display:none;flex-direction:column;padding:2.6vh 0 0}
+  .page.show{display:flex}
+  .app{flex:1 1 auto;min-height:0;max-width:1600px;width:100%;margin:0 auto;display:flex;flex-direction:column;justify-content:flex-end;padding:0 4.4vw}
+  header{display:flex;flex-direction:column;align-items:flex-start;gap:.55em;flex:none;margin-bottom:.85em}
+  .namebox{font-size:1.5em;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fff;
+    border:2px solid #fff;border-radius:0;padding:.12em .5em;line-height:1.1;text-shadow:0 1px 6px #0008}
+  .hrow2{display:flex;align-items:center;gap:.8em;flex-wrap:wrap;width:100%}
+  .status{display:inline-flex;align-items:center;gap:.5em;font:800 .74em ui-monospace,Menlo,monospace;letter-spacing:.09em;text-transform:uppercase;padding:.36em .8em;border-radius:0;border:none}
+  .status .sd{width:.62em;height:.62em;border-radius:50%}
+  /* Running-badge = dark yellow on black (like an active task-box's DARKEST left fill),
+     "Pågår" text in the SAME color/font as "Pågår" in the task boxes (--active, monospace). */
+  .st-running{color:var(--active);background:#33280c}.st-running .sd{background:var(--active)}
+  .st-paused{color:#241a05;background:#f6cf83}.st-paused .sd{background:#241a05}
+  .st-aborted{color:#fff;background:var(--block)}.st-aborted .sd{background:#fff}
+  .st-done{color:#062018;background:var(--done)}.st-done .sd{background:#062018}
+  /* No badge pulse: the DOT rotates (spinner ring) only while running; the text stays still. */
+  .status.pulse .sd{width:.78em;height:.78em;background:none;border:2px solid #f2b34d40;border-top-color:var(--active);border-radius:50%;animation:spin .9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{height:.5em;background:#0d1f1899;border-radius:1em;overflow:hidden;flex:1;min-width:9em;max-width:22em;border:1px solid #ffffff14}
+  /* Batch progress bar in yellow/orange that syncs with the active task boxes (same family). */
+  .bar>div{height:100%;background:linear-gradient(90deg,#6b5011,#f2b34d);transition:width .5s}
+  .sub{font-size:.78em;font-weight:600;color:var(--tx2);white-space:nowrap}
+  .footer{flex:none;width:100%;padding:.85em 3vw 1.05em;display:flex;flex-direction:column;gap:.5em;border-top:1px solid #ffffff12;background:linear-gradient(to top,rgba(6,13,10,.6),rgba(6,13,10,0))}
+  .footrow{display:flex;align-items:center;gap:1.3em;flex-wrap:wrap}
+  .timer{font-size:.7em;color:var(--tx2);white-space:nowrap}
+  .legend{display:flex;gap:.7em;flex-wrap:wrap;font-size:.66em;color:var(--tx2);align-items:center}
+  .dot{display:inline-block;width:.62em;height:.62em;border-radius:50%;vertical-align:middle;margin-right:.3em}
+  .gridwrap{flex:1 1 auto;min-height:0;display:flex;align-items:center}
+  .grid{width:100%;display:grid;grid-template-columns:repeat(6,1fr);gap:.75em;grid-auto-flow:row dense;align-content:center}
+  .card{position:relative;border:1px solid var(--line);border-radius:.6em;padding:.5em .7em;display:flex;flex-direction:column;justify-content:center;gap:.15em;grid-column:span 2;min-height:3em;overflow:visible;background:#0c1712cc;backdrop-filter:blur(2px)}
+  .card.medel{grid-column:span 3}
+  .card.stor{grid-column:span 6}
+  .fill{position:absolute;inset:0;z-index:0;border-radius:.5em}
+  .top{position:relative;z-index:1;display:flex;align-items:center;gap:.5em}
+  .pill{font:600 .7em ui-monospace,Menlo,monospace;color:var(--tx2);background:#0009;padding:.12em .4em;border-radius:.3em;flex:none}
+  .ttl{flex:0 1 auto;min-width:0;font-size:.8em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px #000a}
+  .activity{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2);font-size:.76em;font-style:italic;padding-left:.75em;text-shadow:0 1px 3px #000a}
+  .card.stor .ttl{font-size:.92em}
+  .ph{font-size:.62em;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;flex:none}
+  .decos{flex:none;display:inline-flex;align-items:center;gap:.2em;z-index:1;filter:drop-shadow(0 1px 2px #000b)}
+  .spill{position:absolute;z-index:3;pointer-events:none;line-height:0;filter:drop-shadow(0 1px 2px #000c) drop-shadow(0 0 1px #0009)}
+  .vine{position:absolute;top:-.5em;right:-.5em;width:3.8em;height:3.8em;pointer-events:none;z-index:3;overflow:visible;filter:drop-shadow(0 1px 2px #000b)}
+  .fldeco{position:absolute;z-index:3;pointer-events:none;filter:drop-shadow(0 1px 2px #000c) drop-shadow(0 0 1px #0009)}
+  .card.act{border-color:var(--active);border-width:1.5px;background:#241d0bcc;box-shadow:0 0 0 1px #f2b34d2e,0 0 14px -7px #f2b34d}
+  .card.done{cursor:pointer;border-color:var(--done);border-width:1.5px;background:#0e3627;box-shadow:0 0 0 1px #2fd39a3a,0 0 16px -6px #2fd39a;transition:transform .12s ease,box-shadow .12s ease,filter .12s ease}
+  .card.done:hover{transform:translateY(-2px);box-shadow:0 0 0 1.5px #4fe0aa,0 10px 26px -8px #2fd39acc;filter:brightness(1.14)}
+  .card.needinput{cursor:pointer;border-color:var(--active);border-width:1.5px;box-shadow:0 0 0 1px #f2b34d40,0 0 16px -6px #f2b34d}
+  .camic{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.18em;background:currentColor;-webkit-mask:no-repeat center/contain;mask:no-repeat center/contain;-webkit-mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.6%22/><path d=%22M21 15l-5-5L5 21%22/></svg>');mask-image:url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%222%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.6%22/><path d=%22M21 15l-5-5L5 21%22/></svg>')}
+  .imgic{display:inline-flex;align-items:center;justify-content:center;color:#a8f5d3;background:#0b2b1fe6;border:1px solid #2fd39a99;border-radius:.35em;padding:.1em .22em;margin-left:.3em;vertical-align:-.24em;flex:none;filter:drop-shadow(0 1px 2px #000a)}
+  .imgic .camic{width:1em;height:1em}
+  .caption{font-size:.7em;color:var(--tx);line-height:1.4;text-shadow:0 1px 2px #000a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .caption b{color:#fff;font-weight:700}
+  .credit{position:fixed;right:.9em;bottom:.55em;z-index:7;font-size:.62em;font-weight:400;color:#cde0d6;opacity:.72;text-shadow:0 1px 3px #000c;pointer-events:none}
+  .card.pop{animation:pop .55s cubic-bezier(.2,1.3,.4,1) 1}
+  @keyframes pop{0%{transform:scale(.9);opacity:.2}55%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+  /* Done animation ~10 s – the flowers grow in ONE BY ONE (appear + get bigger).
+     Only on a JUST-completed (.fresh) item; per-flower delay is set inline (--d). */
+  @keyframes grow{0%{opacity:0;transform:scale(.15)}70%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+  .card.fresh .fldeco{animation:grow .75s cubic-bezier(.2,1.3,.4,1) both;animation-delay:var(--d,0s);transform-origin:center}
+  .card.fresh .vine{animation:grow .6s ease both}
+  /* Previous pass's cards – NO flowers, no "previous pass" badge; instead a muted
+     "Från förra passet" (from the previous pass) text where the status usually sits. */
+  .card.prev{box-shadow:none;border-color:#294a3d;filter:saturate(.6) contrast(.9)}
+  .card.prev .ttl{text-shadow:none;color:#8fae9f}
+  .card.prev .activity{text-shadow:none;color:#6f8a7d}
+  .card.prev .pill{background:#0d2a2099;color:#6fa78e}
+  .ph.prevtag{color:#6fa78e;font-weight:600}
+  .welcome{position:fixed;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 8vw}
+  .welcome.show{display:flex}
+  .wbox{max-width:660px;background:#0a1310b8;border:1px solid #ffffff1f;border-radius:1.2em;padding:2.4em 2.6em;backdrop-filter:blur(5px);box-shadow:0 20px 60px -20px #000c}
+  .wbox h1{font-size:2em;margin:.1em 0 .55em;display:flex;align-items:center;justify-content:center;gap:.4em}
+  .wbox .lead{font-size:1.05em;color:var(--tx2);line-height:1.65;margin:0 0 1.2em}
+  .wbox .cap{font-size:.92em;color:var(--tx2);line-height:1.65}.wbox .cap b{color:var(--tx)}
+  .wbox button{margin-top:1.6em;font-size:1.05em;font-weight:600;color:#062018;background:linear-gradient(180deg,#57e2ae,#2fd39a);border:0;border-radius:2em;padding:.72em 1.9em;cursor:pointer;box-shadow:0 8px 24px -8px #2fd39aaa}
+  .wbox button:hover{filter:brightness(1.07)}
+  .ov{position:fixed;inset:0;z-index:5;background:#050b08d0;display:none;align-items:center;justify-content:center;padding:2em}
+  .ov.show{display:flex}
+  .panel{background:#0c1712;border:1.5px solid var(--active);border-radius:.9em;max-width:640px;width:100%;max-height:86vh;overflow:auto;padding:1.3em 1.5em;box-shadow:0 0 40px -8px #f2b34d66}
+  .panel h2{margin:0 0 .3em;font-size:1.05em;color:#f6cf83}
+  .panel .note{color:var(--tx2);font-size:.9em;white-space:pre-wrap;line-height:1.6}
+  .panel .x{float:right;cursor:pointer;color:var(--tx3);font-size:1.2em;border:0;background:0}
+  .detail{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:5vh 6vw;display:none}
+  .detail.show{display:block}
+  .detail h1{font-size:1.5em;margin:.2em 0 .1em;display:flex;align-items:center;gap:.45em}
+  .detail .dnote{color:var(--tx2);font-size:1em;line-height:1.7;white-space:pre-wrap;margin:.8em 0 1.4em;background:rgba(6,13,10,.5);border:1px solid #ffffff14;border-radius:.7em;padding:1em 1.2em}
+  .detail .imgs{display:flex;gap:1.2em;flex-wrap:wrap}.detail figure{margin:0;flex:1;min-width:320px}
+  .detail img{width:100%;border:1px solid var(--line);border-radius:.5em;display:block}
+  .detail figcaption{font-size:.8em;color:var(--tx3);margin-top:.4em;font-weight:600;letter-spacing:.04em}
+  .scrollhint{flex:none;text-align:center;font-size:.72em;color:var(--tx2);padding-top:.3em;opacity:.85}
+  .report{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:1vh 6vw 9vh;display:none}
+  .report.show{display:block}
+  .report h2{font-size:1.25em;font-weight:800;letter-spacing:.02em;border-bottom:1px solid #ffffff26;padding-bottom:.35em;margin:1.8em 0 1em;color:#fff}
+  .ritem{background:rgba(6,13,10,.55);border:1px solid #ffffff14;border-radius:.7em;padding:1em 1.2em;margin-bottom:.85em;backdrop-filter:blur(3px)}
+  .ritem h3{margin:0 0 .45em;font-size:1em;display:flex;align-items:center;gap:.55em;flex-wrap:wrap}
+  .rpill{font:700 .82em ui-monospace,Menlo,monospace;background:#0c2c22;color:#7fe8b6;padding:.1em .5em;border-radius:.3em}
+  .rpill.inp{background:#3a2c07;color:#f6cf83}
+  .rnote{color:var(--tx2);font-size:.9em;line-height:1.65;white-space:pre-wrap}
+  .rimgs{display:flex;gap:1em;margin-top:.9em;flex-wrap:wrap}.rimgs figure{margin:0;flex:1;min-width:280px}
+  .rimgs img{width:100%;border:1px solid var(--line);border-radius:.45em;display:block}
+  .rimgs figcaption{font-size:.72em;color:var(--tx3);margin-top:.35em;font-weight:600;letter-spacing:.04em}
+  .tcase{border-left:3px solid;padding:.55em .95em;margin-bottom:.6em;background:rgba(6,13,10,.5);border-radius:0 .5em .5em 0}
+  .tcase.must{border-color:var(--active)}.tcase.nice{border-color:var(--done)}
+  .tcase h4{margin:0 0 .25em;font-size:.94em;color:#fff}
+  .tcase .step{font-size:.86em;color:var(--tx2);line-height:1.55}.tcase .step b{color:#cfe8dc}
+  .tsub{font-size:1em;font-weight:700;margin:1.1em 0 .5em}.tsub.must{color:#f6cf83}.tsub.nice{color:#7cf0c2}
+  /* Whole-batch celebration – ~100 flowers along the EDGES, one by one, without obscuring the content. */
+  .finale{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden;display:none}
+  .finale.show{display:block}
+  .ff{position:absolute;transform:translate(-50%,-50%) scale(0);line-height:0;filter:drop-shadow(0 2px 4px #000b);animation:grow .5s cubic-bezier(.2,1.4,.4,1) both}
+  /* Design tool ON the dashboard – draw a box + comment, self-contained, copy-paste to chat. */
+  .dbtn{position:fixed;left:.7em;bottom:.55em;z-index:8;font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;color:#241a05;background:linear-gradient(180deg,#f7d78f,#f2b34d);border:1px solid #b9831f;border-radius:.5em;padding:.42em .8em;cursor:pointer;box-shadow:0 3px 12px -4px #000a}
+  .dbtn.on{background:#241a05;color:#f2b34d;border-color:#f2b34d}
+  .dbar{position:fixed;left:.7em;bottom:2.6em;z-index:9;display:none;gap:.4em;background:#0c1712ee;border:1px solid #f2b34d66;border-radius:.5em;padding:.4em .5em}
+  .dbar.on{display:flex}
+  .dbar button{font:600 .7em -apple-system,sans-serif;color:#f2b34d;background:#241a05;border:1px solid #f2b34d55;border-radius:.4em;padding:.3em .6em;cursor:pointer}
+  .dbar span{font-size:.66em;color:var(--tx2);align-self:center;max-width:12em}
+  .dlayer{position:fixed;inset:0;z-index:7;display:none;cursor:crosshair;background:#0a120e14}
+  .dlayer.on{display:block}
+  .drect{position:fixed;z-index:8;border:2px solid #f2b34d;background:#f2b34d22;border-radius:.15em;pointer-events:none}
+  .dmarks{position:fixed;inset:0;z-index:6;pointer-events:none}
+  .dmark{position:fixed;border:2px dashed #f2b34dcc;background:#f2b34d1c;border-radius:.15em}
+  .dmark b{position:absolute;left:-1px;top:-1.35em;font:700 .68em ui-monospace,monospace;color:#241a05;background:#f2b34d;padding:0 .35em;border-radius:.25em 0 .25em 0}
+  .dpop{position:fixed;z-index:9;background:#0c1712;border:1.5px solid #f2b34d;border-radius:.6em;padding:.7em .75em;width:290px;box-shadow:0 12px 34px -8px #000d}
+  .dpop textarea{width:100%;background:#0a1310;color:var(--tx);border:1px solid var(--line);border-radius:.45em;padding:.5em;font:inherit;font-size:.85em;resize:vertical}
+  .dpop .row{display:flex;gap:.5em;margin-top:.55em}
+  .dpop button{font:600 .8em -apple-system,sans-serif;border-radius:1.4em;padding:.4em 1em;cursor:pointer;border:0}
+  .dpop .save{color:#241a05;background:linear-gradient(180deg,#f7d78f,#f2b34d)}
+  .dpop .cancel{color:var(--tx2);background:#1a2621;border:1px solid var(--line)}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="scrim"></div>
+
+<div class="page" id="page">
+  <div class="app" id="app">
+    <header>
+      <span class="namebox" id="nameBox">–</span>
+      <div class="hrow2">
+        <span class="status" id="statusBadge"><span class="sd"></span><span id="statusTxt">–</span></span>
+        <div class="bar"><div id="progbar" style="width:0%"></div></div>
+        <span class="sub" id="sub">–</span>
+      </div>
+    </header>
+    <div class="gridwrap"><div class="grid" id="grid"></div></div>
+  </div>
+  <div class="footer">
+    <div class="footrow">
+      <span class="timer" id="timer">–</span>
+      <div class="legend">
+        <span><i class="dot" style="background:var(--wait)"></i>Väntar</span>
+        <span><i class="dot" style="background:var(--start)"></i>Startar</span>
+        <span><i class="dot" style="background:var(--active)"></i>Pågår</span>
+        <span><i class="dot" style="background:var(--test)"></i>Testar</span>
+        <span><i class="dot" style="background:var(--done)"></i>Klar</span>
+        <span><i class="dot" style="background:var(--block)"></i>Blockerad</span>
+        <span style="color:var(--tx3)">· kortlängd fylls med fasen · kortstorlek = jobbets storlek · <i class="camic" aria-hidden="true"></i>-ikon = har före/efter · klicka en klar post (öppnas i ny flik) · ✎ Design = rita en ruta + kommentera</span>
+      </div>
+    </div>
+    <div class="caption" id="caption"></div>
+    <div class="scrollhint" id="scrollhint">↓ Rulla ner för alla tasks detaljer + testfallen</div>
+  </div>
+</div>
+
+<div class="report" id="report"></div>
+<div class="credit" id="credit"></div>
+<div class="finale" id="finale"></div>
+
+<div class="ov" id="ov"><div class="panel" id="panel"></div></div>
+
+<div class="welcome" id="welcome">
+  <div class="wbox">
+    <h1><span id="welFlower"></span> Välkommen till batch-arbetet</h1>
+    <p class="lead" id="welLead">–</p>
+    <p class="cap" id="welCap"></p>
+    <button id="welBtn">Visa dashboarden</button>
+  </div>
+</div>
+
+<div class="detail" id="detail"></div>
+
+<div class="dmarks" id="dmarks"></div>
+<div class="dlayer" id="dlayer"></div>
+<div class="dbar" id="dbar">
+  <button id="dcopy">Kopiera notiser</button>
+  <button id="dclear">Rensa</button>
+  <span>Dra en ruta över ett område och kommentera. Kopiera → klistra in i chatten.</span>
+</div>
+<button class="dbtn" id="dbtn">✎ Design</button>
+
+<script>
+(function(){
+  // ── SVG flowers/vine ──
+  function petals(pc,ctr,n){var s='';for(var i=0;i<n;i++)s+='<ellipse cx="22" cy="11" rx="5" ry="9.5" fill="'+pc+'" transform="rotate('+(i*360/n)+' 22 22)"/>';return s+'<circle cx="22" cy="22" r="5.6" fill="'+ctr+'"/>';}
+  function fl(inner,size,rot){return '<svg viewBox="0 0 44 44" style="width:'+size+';height:'+size+';display:block'+(rot?';transform:rotate('+rot+'deg)':'')+'">'+inner+'</svg>';}
+  var FLW=[petals('#f6f1e4','#eab53a',11),petals('#ec6f9e','#f7d24b',8),petals('#9d78dd','#f2c94c',10),petals('#f2895a','#5a3016',7),petals('#f4c534','#8a5a12',8),petals('#7aa6e6','#f5e79a',6),petals('#e05a5a','#2c1410',6),petals('#f3c7dc','#e07aa6',9)];
+  function rng(seed){var s=(seed>>>0)||1;return function(){s=(s*1664525+1013904223)>>>0;return s/4294967296;};}
+  function cornerVine(stroke){
+    stroke=stroke||'#63cf98';
+    var stem='<path d="M58 66 C60 54 53 49 57 39 C60 31 52 25 56 16 C58 10 50 7 42 8 C33 9 27 4 17 7 C12 8.5 10 5 12 3" fill="none" stroke="'+stroke+'" stroke-width="2.1" stroke-linecap="round"/>';
+    function leafAt(cx,cy,rot){return '<g transform="translate('+cx+' '+cy+') rotate('+rot+')"><path d="M0 0 Q0 -7 9 -9 Q6 -1 0 0 Z" fill="'+stroke+'"/></g>';}
+    var leaves=leafAt(56,42,18)+leafAt(56,21,-26)+leafAt(30,7,148);
+    return '<span class="vine"><svg viewBox="0 0 64 64" style="width:100%;height:100%;overflow:visible">'+stem+leaves+'</svg></span>';
+  }
+  // Flower decor for a done card (stable per id via seed). Flowers carry --d (stagger delay) so
+  // they can grow in ONE BY ONE over ~10 s when the card has just become done.
+  function doneDeco(id){
+    var seed=0;for(var ci=0;ci<id.length;ci++)seed=seed*31+id.charCodeAt(ci);
+    var rf=rng(seed),deco=cornerVine('#63cf98'),nf=6+Math.floor(rf()*3),step=(9.2/nf);
+    for(var kf=0;kf<nf;kf++){
+      var rp=(48*rf()*rf()).toFixed(1),fsz=(1.35+rf()*1.05).toFixed(2)+"em",frot=Math.round(rf()*40-20);
+      var vp=rf()<.5?("top:"+(-.55+rf()*.75).toFixed(2)+"em"):("bottom:"+(-.55+rf()*.75).toFixed(2)+"em");
+      var d=(0.4+kf*step).toFixed(2);
+      deco+='<span class="fldeco" style="'+vp+';right:'+rp+'%;--d:'+d+'s">'+fl(FLW[Math.floor(rf()*FLW.length)],fsz,frot)+'</span>';
+    }
+    return deco;
+  }
+
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  var PH={waiting:["Väntar","var(--wait)",5],starting:["Startar","var(--start)",25],active:["Pågår","var(--active)",62],
+    testing:["Testar","var(--test)",86],done:["Klar","var(--done)",100],blocked:["Blockerad","var(--block)",50],
+    input:["⚑ Kräver din input","var(--active)",100]};
+  var ST={running:["Pågår","st-running"],paused:["Pausad","st-paused"],aborted:["Avbruten","st-aborted"],done:["Klar","st-done"]};
+
+  var TASK=new URLSearchParams(location.search).get("task");
+  var grid=document.getElementById("grid"),ov=document.getElementById("ov"),panel=document.getElementById("panel");
+  var page=document.getElementById("page"),wel=document.getElementById("welcome");
+  var CARDS={},booted=false,pollTimer=null,D=null;
+
+  // ── Sound: a little "plop" per flower in the finale (WebAudio; started on first gesture) ──
+  var actx=null;
+  function ensureAudio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
+  document.addEventListener("pointerdown",ensureAudio,{once:false});
+  function plopp(){if(!actx)return;try{var o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime;o.type="sine";o.frequency.setValueAtTime(300+Math.random()*300,t);o.frequency.exponentialRampToValueAtTime(120,t+.11);g.gain.setValueAtTime(.001,t);g.gain.exponentialRampToValueAtTime(.11,t+.012);g.gain.exponentialRampToValueAtTime(.001,t+.17);o.connect(g);g.connect(actx.destination);o.start(t);o.stop(t+.19);}catch(e){}}
+
+  // ── Detail view (?task=ID) in its own tab ──
+  function renderDetail(){
+    var it=(D.items||[]).filter(function(i){return i.id===TASK})[0];
+    var d=document.getElementById("detail");
+    if(!it){d.innerHTML='<h1>Okänd post: '+esc(TASK)+'</h1>';d.classList.add("show");return;}
+    document.title=it.id+" · "+it.t;
+    var imgs="";
+    if(it.before||it.after){
+      imgs='<div class="imgs">'+(it.before?'<figure><img src="'+it.before+'"><figcaption>FÖRE</figcaption></figure>':'')+
+        (it.after?'<figure><img src="'+it.after+'"><figcaption>EFTER</figcaption></figure>':'')+'</div>';
+    }
+    d.innerHTML='<h1><span style="display:inline-block;vertical-align:-.15em">'+fl(FLW[1],'1.1em',0)+'</span>'+esc(it.id)+' · '+esc(it.t)+'</h1>'+
+      '<div class="dnote">'+esc(it.note||"–")+'</div>'+imgs;
+    d.classList.add("show");
+  }
+
+  function renderChrome(){
+    var doneN=D.items.filter(function(i){return i.phase==="done"}).length;
+    document.getElementById("progbar").style.width=Math.round(doneN/D.items.length*100)+"%";
+    document.getElementById("sub").textContent=doneN+" av "+D.items.length+" klara";
+    document.getElementById("caption").innerHTML=D.bgCaption||"";
+    var s=ST[D.status]||ST.paused;
+    document.getElementById("statusBadge").className="status "+s[1]+(D.status==="running"?" pulse":"");
+    document.getElementById("statusTxt").textContent=s[0];
+    document.getElementById("nameBox").textContent=D.name||"Batchjobb";
+    document.getElementById("credit").textContent=D.bgCredit||"";
+  }
+
+  function fmtDur(ms){var s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+"h "+m+"m";}
+  function tick(){
+    var start=localStorage.getItem("wk0000start"),el=document.getElementById("timer");
+    if(D.status==="running"&&!start){start=Date.now().toString();localStorage.setItem("wk0000start",start);}
+    if(!start){el.textContent="Starttid registreras när batchen körs";return;}
+    var st=new Date(parseInt(start)),end;
+    if(D.status==="running"){end=Date.now();localStorage.setItem("wk0000frozen",end.toString());}
+    else{end=parseInt(localStorage.getItem("wk0000frozen")||Date.now().toString());}
+    el.textContent="Startad "+st.toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"})+" · körtid "+fmtDur(end-st.getTime());
+  }
+
+  function cardSig(it,prev){return [it.phase,it.size,it.activity||"",it.note||"",it.before||"",it.after||"",prev?1:0].join("|");}
+  function buildCard(c,it,prev){
+    var ph=PH[it.phase],col=ph[1];
+    c.className="card "+(it.size||"liten")+(it.phase==="done"?" done":"")+(it.phase==="input"?" needinput":"")+(it.phase==="active"?" act":"")+(prev?" prev":"");
+    var fillBg=it.phase==="done"?"linear-gradient(90deg,#0f5c42,#178a61)"
+      :it.phase==="input"?"linear-gradient(90deg,#6b4409,#a06a12)"
+      :it.phase==="active"?"linear-gradient(90deg,#33280c,#6b5011)":col+"1e";
+    var fill='<div class="fill" style="width:'+ph[2]+'%;background:'+fillBg+'"></div>';
+    var right="",spill="";
+    if(it.phase==="done"){
+      // Previous pass's done items → no flower decor + "Från förra passet" in the status slot.
+      if(prev){right='<span class="ph prevtag">Från förra passet</span>';}
+      else{spill=doneDeco(it.id);}
+    }else{right='<span class="ph" style="color:'+col+'">'+ph[0]+'</span>';}
+    var imgic=(it.phase==="done"&&(it.before||it.after))?'<span class="imgic" title="Har före/efter-bilder – klicka (ny flik)"><i class="camic"></i></span>':'';
+    var actTxt=(it.phase!=="done"&&it.phase!=="waiting"&&it.activity)?it.activity:"";
+    c.innerHTML=fill+spill+'<div class="top"><span class="pill">'+esc(it.id)+'</span>'+imgic+'<span class="ttl">'+esc(it.t)+'</span><span class="activity">'+esc(actTxt)+'</span>'+right+'</div>';
+    c.onclick=it.phase==="done"?function(){window.open(location.pathname+"?task="+it.id,"_blank");}
+      :it.phase==="input"?function(){openInput(it)}:null;
+  }
+  function renderGrid(){
+    var seen=JSON.parse(localStorage.getItem("wk0000seen")||"[]"),nowSeen=seen.slice();
+    D.items.forEach(function(it){
+      var prev=it.phase==="done"&&(D.prevDone||[]).indexOf(it.id)>=0;
+      var sig=cardSig(it,prev),rec=CARDS[it.id];
+      if(!rec){var c=document.createElement("div");buildCard(c,it,prev);grid.appendChild(c);CARDS[it.id]={el:c,sig:sig};rec=CARDS[it.id];}
+      else if(rec.sig!==sig){buildCard(rec.el,it,prev);rec.sig=sig;}
+      // One-time celebration when a NEW (not previous pass's) item becomes done: pop + flowers grow in one by one.
+      if(it.phase==="done"&&!prev&&seen.indexOf(it.id)<0){rec.el.classList.add("pop");rec.el.classList.add("fresh");if(nowSeen.indexOf(it.id)<0)nowSeen.push(it.id);}
+    });
+    localStorage.setItem("wk0000seen",JSON.stringify(nowSeen));
+    fit();
+  }
+
+  function fit(){
+    if(!page.classList.contains("show"))return;
+    var wrap=document.querySelector(".gridwrap");
+    var fs=16,g=0;document.documentElement.style.fontSize=fs+"px";
+    while(grid.scrollHeight>wrap.clientHeight+1&&fs>7.5&&g<70){fs-=0.5;document.documentElement.style.fontSize=fs+"px";g++;}
+  }
+
+  // ── Whole-batch celebration – 100 flowers along the edges, one by one, with a plop ──
+  function celebrate(){
+    if(localStorage.getItem("wk0000fin"))return;
+    var allDone=D.items.length&&D.items.every(function(i){return i.phase==="done"});
+    if(!(allDone&&D.status==="done"))return;
+    localStorage.setItem("wk0000fin","1");
+    ensureAudio();
+    var f=document.getElementById("finale");f.classList.add("show");
+    var N=100,rf=rng(1234567);
+    for(var i=0;i<N;i++){
+      (function(k){
+        setTimeout(function(){
+          var edge=Math.floor(rf()*4),band=(5+rf()*9),along=(2+rf()*96),top,left;
+          if(edge===0){top=band;left=along;}else if(edge===1){top=100-band;left=along;}
+          else if(edge===2){left=band;top=along;}else{left=100-band;top=along;}
+          var sz=(1.4+rf()*2.8).toFixed(2)+"em",rot=Math.round(rf()*360);
+          var s=document.createElement("span");s.className="ff";
+          s.style.top=top+"vh";s.style.left=left+"vw";
+          s.innerHTML=fl(FLW[Math.floor(rf()*FLW.length)],sz,rot);
+          f.appendChild(s);plopp();
+        },k*(7000/N));
+      })(i);
+    }
+  }
+
+  function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).catch(function(){legacyCopy(t)});legacyCopy(t);return Promise.resolve();}
+  function legacyCopy(t){var ta=document.createElement("textarea");ta.value=t;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy")}catch(e){}document.body.removeChild(ta);}
+  function openInput(it){
+    var q=it.question||it.activity||"Vad behöver du från mig för att kunna slutföra den här posten?";
+    panel.innerHTML='<button class="x" onclick="document.getElementById(\'ov\').classList.remove(\'show\')">✕</button>'+
+      '<h2>⚑ '+esc(it.id)+' · '+esc(it.t)+'</h2><div class="note" style="margin-bottom:1em">'+esc(q)+'</div>'+
+      '<textarea id="ans" rows="4" placeholder="Skriv ditt svar…" style="width:100%;background:#0a1310;color:var(--tx);border:1px solid var(--line);border-radius:.5em;padding:.6em;font:inherit;resize:vertical"></textarea>'+
+      '<div style="display:flex;gap:.9em;align-items:center;margin-top:.8em;flex-wrap:wrap"><button id="okb" style="font:inherit;font-weight:600;color:#241a05;background:linear-gradient(180deg,#f7d78f,#f2b34d);border:0;border-radius:1.6em;padding:.5em 1.5em;cursor:pointer">OK – kopiera svar</button><span id="okmsg" style="color:var(--tx2);font-size:.9em"></span></div>';
+    ov.classList.add("show");document.getElementById("ans").focus();
+    document.getElementById("okb").onclick=function(){
+      var a=document.getElementById("ans").value.trim();
+      if(!a){document.getElementById("okmsg").textContent="Skriv ett svar först.";return;}
+      copyText("SVAR ["+it.id+" · "+it.t+"]: "+a).then(function(){document.getElementById("okmsg").innerHTML="✓ Kopierat – <b>klistra in i chatten (⌘V)</b>.";});
+    };
+  }
+  ov.onclick=function(e){if(e.target===ov)ov.classList.remove("show")};
+
+  // ── Design tool on the dashboard (draw box + comment → copy-paste) ──
+  var dmode=false,dnotes=JSON.parse(localStorage.getItem("wk0000notes")||"[]"),draw=null;
+  var dbtn=document.getElementById("dbtn"),dbar=document.getElementById("dbar"),dlayer=document.getElementById("dlayer"),dmarks=document.getElementById("dmarks");
+  function saveNotes(){localStorage.setItem("wk0000notes",JSON.stringify(dnotes));renderMarks();}
+  function renderMarks(){
+    dmarks.innerHTML="";
+    dnotes.forEach(function(n,idx){
+      var m=document.createElement("div");m.className="dmark";
+      m.style.left=n.x+"vw";m.style.top=n.y+"vh";m.style.width=n.w+"vw";m.style.height=n.h+"vh";
+      m.innerHTML='<b>'+(idx+1)+'</b>';m.title=n.comment;dmarks.appendChild(m);
+    });
+    dbtn.textContent=dnotes.length?("✎ Design ("+dnotes.length+")"):"✎ Design";
+  }
+  function setMode(on){dmode=on;dbtn.classList.toggle("on",on);dbar.classList.toggle("on",on);dlayer.classList.toggle("on",on);}
+  dbtn.onclick=function(){setMode(!dmode);};
+  document.getElementById("dclear").onclick=function(){if(confirm("Rensa alla designnotiser på denna sida?")){dnotes=[];saveNotes();}};
+  document.getElementById("dcopy").onclick=function(){
+    if(!dnotes.length){alert("Inga designnotiser än – dra en ruta över ett område och kommentera.");return;}
+    var t="DESIGNNOTISER (batch-dashboard):\n"+dnotes.map(function(n,i){
+      return (i+1)+". [ruta ~"+Math.round(n.x)+","+Math.round(n.y)+" "+Math.round(n.w)+"x"+Math.round(n.h)+"vw/vh · nära: "+n.near+"]\n   "+n.comment;
+    }).join("\n");
+    copyText(t).then(function(){alert("✓ "+dnotes.length+" designnotiser kopierade – klistra in i chatten (⌘V).");});
+  };
+  dlayer.addEventListener("pointerdown",function(e){
+    draw={x0:e.clientX,y0:e.clientY};
+    var r=document.createElement("div");r.className="drect";r.id="drectlive";dlayer.appendChild(r);
+  });
+  dlayer.addEventListener("pointermove",function(e){
+    if(!draw)return;var r=document.getElementById("drectlive");if(!r)return;
+    var x=Math.min(draw.x0,e.clientX),y=Math.min(draw.y0,e.clientY),w=Math.abs(e.clientX-draw.x0),h=Math.abs(e.clientY-draw.y0);
+    r.style.left=x+"px";r.style.top=y+"px";r.style.width=w+"px";r.style.height=h+"px";
+  });
+  dlayer.addEventListener("pointerup",function(e){
+    if(!draw)return;
+    var x=Math.min(draw.x0,e.clientX),y=Math.min(draw.y0,e.clientY),w=Math.abs(e.clientX-draw.x0),h=Math.abs(e.clientY-draw.y0);
+    var r=document.getElementById("drectlive");if(r)r.remove();
+    draw=null;
+    if(w<12||h<12)return;
+    // Which element is under the box center? (temporarily hide the drag layer)
+    dlayer.style.pointerEvents="none";
+    var el=document.elementFromPoint(x+w/2,y+h/2);dlayer.style.pointerEvents="";
+    var near="okänt";
+    if(el){var t=(el.textContent||"").trim().replace(/\s+/g," ").slice(0,40);near=(el.id?("#"+el.id):(el.className&&el.className.baseVal!==undefined?"."+el.className.baseVal:(typeof el.className==="string"&&el.className?"."+el.className.split(" ")[0]:el.tagName.toLowerCase())))+(t?(' "'+t+'"'):"");}
+    var vw=innerWidth/100,vh=innerHeight/100;
+    var rect={x:x/vw,y:y/vh,w:w/vw,h:h/vh,near:near.slice(0,60)};
+    openNotePopup(e.clientX,e.clientY,rect);
+  });
+  function openNotePopup(px,py,rect){
+    var p=document.createElement("div");p.className="dpop";
+    p.style.left=Math.min(px,innerWidth-300)+"px";p.style.top=Math.min(py,innerHeight-160)+"px";
+    p.innerHTML='<textarea id="dcmt" rows="3" placeholder="Vad ska ändras här?"></textarea><div class="row"><button class="save" id="dsave">Spara notis</button><button class="cancel" id="dcancel">Avbryt</button></div>';
+    document.body.appendChild(p);var ta=p.querySelector("#dcmt");ta.focus();
+    p.querySelector("#dcancel").onclick=function(){p.remove();};
+    p.querySelector("#dsave").onclick=function(){
+      var v=ta.value.trim();if(!v){ta.focus();return;}
+      dnotes.push({x:rect.x,y:rect.y,w:rect.w,h:rect.h,near:rect.near,comment:v,ts:Date.now()});
+      saveNotes();p.remove();
+    };
+  }
+
+  function loadData(bust){
+    var sc=document.createElement("script");
+    sc.src="batch-dashboard-data.js"+(bust?("?t="+Date.now()):"");
+    sc.onload=function(){sc.parentNode&&sc.parentNode.removeChild(sc);};
+    sc.onerror=function(){
+      sc.parentNode&&sc.parentNode.removeChild(sc);
+      if(!booted&&bust){loadData(false);}
+      else if(!booted){document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:16px sans-serif;background:#0a120e">Kunde inte ladda batch-dashboard-data.js</div>');}
+    };
+    document.body.appendChild(sc);
+  }
+  function managePolling(){
+    if(D.status==="running"&&!pollTimer){pollTimer=setInterval(function(){loadData(true)},6000);}
+    else if(D.status!=="running"&&pollTimer){clearInterval(pollTimer);pollTimer=null;}
+  }
+
+  window.__applyBatch=function(data){
+    D=data;
+    if(TASK){renderDetail();return;}
+    renderChrome();tick();renderGrid();renderReport();managePolling();celebrate();
+    if(!booted){booted=true;renderMarks();firstShow();setInterval(tick,1000);}
+  };
+
+  function renderReport(){
+    var el=document.getElementById("report");
+    var done=D.items.filter(function(i){return i.phase==="done"});
+    var inputs=D.items.filter(function(i){return i.phase==="input"});
+    var sig=JSON.stringify(done.map(function(i){return[i.id,i.note,i.before,i.after]}))+"|"+
+            JSON.stringify(inputs.map(function(i){return[i.id,i.question||i.note]}))+"|"+JSON.stringify(D.tests||null);
+    if(el.getAttribute("data-sig")===sig)return; el.setAttribute("data-sig",sig);
+    var h='<h2>Genomförda tasks ('+done.length+')</h2>';
+    done.forEach(function(it){
+      var imgs="";
+      if(it.before||it.after){imgs='<div class="rimgs">'+(it.before?'<figure><img src="'+it.before+'"><figcaption>FÖRE</figcaption></figure>':'')+(it.after?'<figure><img src="'+it.after+'"><figcaption>EFTER</figcaption></figure>':'')+'</div>';}
+      h+='<div class="ritem" id="r-'+esc(it.id)+'"><h3><span class="rpill">'+esc(it.id)+'</span>'+esc(it.t)+'</h3><div class="rnote">'+esc(it.note||"–")+'</div>'+imgs+'</div>';
+    });
+    if(inputs.length){
+      h+='<h2>Väntar på dig</h2>';
+      inputs.forEach(function(it){h+='<div class="ritem"><h3><span class="rpill inp">⚑ '+esc(it.id)+'</span>'+esc(it.t)+'</h3><div class="rnote">'+esc(it.question||it.note||"")+'</div></div>';});
+    }
+    if(D.tests){
+      h+='<h2>Testfall</h2>';
+      if(D.tests.must&&D.tests.must.length){
+        h+='<div class="tsub must">Måste testas (kunde inte verifieras autonomt)</div>';
+        D.tests.must.forEach(function(t){h+='<div class="tcase must"><h4>'+esc(t.id)+' · '+esc(t.t)+'</h4><div class="step">'+esc(t.steps)+' → <b>'+esc(t.expect)+'</b></div></div>';});
+      }
+      if(D.tests.nice&&D.tests.nice.length){
+        h+='<div class="tsub nice">Får gärna testas (redan verifierat av mig)</div>';
+        D.tests.nice.forEach(function(t){h+='<div class="tcase nice"><h4>'+esc(t.id)+' · '+esc(t.t)+'</h4><div class="step">'+esc(t.steps)+' → <b>'+esc(t.expect)+'</b></div></div>';});
+      }
+    }
+    el.innerHTML=h;
+  }
+
+  function showDash(){page.classList.add("show");document.getElementById("report").classList.add("show");wel.classList.remove("show");fit();}
+  function firstShow(){
+    var welKey="wk0000wel_"+(D.bgId||"x");
+    if(TASK){return;}
+    if(localStorage.getItem(welKey)){showDash();return;}
+    document.getElementById("welFlower").innerHTML=fl(FLW[1],"1.1em",0);
+    document.getElementById("welLead").textContent="Det här är din live-vy för batchjobbet ("+D.items.length+" poster). Följ hur de betas av i realtid – korten uppdateras in-place (ingen helsidesladdning) medan jag jobbar, med ett blomster-firande när en post blir klar och en hel äng längs kanterna när HELA batchen är klar.";
+    document.getElementById("welCap").innerHTML=D.bgCaption||"";
+    wel.classList.add("show");
+    document.getElementById("welBtn").onclick=function(){ensureAudio();localStorage.setItem(welKey,"1");showDash();};
+  }
+  window.addEventListener("resize",fit);
+
+  loadData(true);
+})();
+</script>
+</body>
+</html>

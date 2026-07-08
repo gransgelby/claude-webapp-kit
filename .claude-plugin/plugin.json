@@ -1,0 +1,9 @@
+{
+  "name": "webapp-kit",
+  "description": "Ett arbetssätt för att bygga webbappar med Claude Code: batch-jobb med live-dashboard, obevakade långpass med subagenter, doc-roll-system, en visuell design-process (shadcn + tokens) och skärmdumps-tooling. Paketerar konventioner som annars lever löst i CLAUDE.md.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Andreas"
+  },
+  "keywords": ["workflow", "webapp", "batch", "design", "documentation", "subagents"]
+}
