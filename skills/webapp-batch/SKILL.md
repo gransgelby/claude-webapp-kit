@@ -28,6 +28,9 @@ Innan något jobb påbörjas:
 3. Bekräfta slutlig plan (ordning + vad som körs autonomt vs väntar på svar).
 
 ## Steg 3 — Körning med LIVE-dashboard (samma fil = slutrapporten)
+
+**Körmotor (standard, inget separat val):** driv körningen med `long-run`-spelboken — **en subagent (`batch-worker`) per post** i eget context så huvudloopen hålls lätt och context-fönstret sparas. Sekventiellt för fil-rörande poster (undvik krock), parallellt för read-only research/audit; huvudloopen committar per klar post. Detta är default så fort en batch startas ("starta batchjobb") — användaren behöver **inte** be om subagenter separat. Läs `long-run`-skillen för tiers A/B, adversariell verifiering och circuit-breaker. (Undantag: en pytteliten batch som uppenbart ryms i ett context-fönster kan köras inline — men vid minsta tvekan, subagenter.)
+
 Kopiera mallen till batchen och driv den under hela körningen:
 ```
 cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard.html reports/batch-<datum>.html
