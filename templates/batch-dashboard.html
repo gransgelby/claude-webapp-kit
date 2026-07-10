@@ -89,7 +89,10 @@
   .welcome.show{display:flex}
   .wbox{max-width:660px;background:#0a1310b8;border:1px solid #ffffff1f;border-radius:1.2em;padding:2.4em 2.6em;backdrop-filter:blur(5px);box-shadow:0 20px 60px -20px #000c}
   .wbox h1{font-size:2em;margin:.1em 0 .55em;display:flex;align-items:center;justify-content:center;gap:.4em}
-  .wbox .lead{font-size:1.05em;color:var(--tx2);line-height:1.65;margin:0 0 1.2em}
+  .wbox .why{font-size:1.08em;color:var(--tx);line-height:1.6;margin:0 0 1.1em}
+  .wbox .saying{font-size:1.02em;font-style:italic;color:#f6cf83;line-height:1.55;margin:0 0 1.4em;
+    padding-left:.9em;border-left:2px solid #f2b34d66;text-align:left;display:inline-block}
+  .wbox .lead{font-size:.95em;color:var(--tx2);line-height:1.6;margin:0 0 1.1em}
   .wbox .cap{font-size:.92em;color:var(--tx2);line-height:1.65}.wbox .cap b{color:var(--tx)}
   .wbox button{margin-top:1.6em;font-size:1.05em;font-weight:600;color:#062018;background:linear-gradient(180deg,#57e2ae,#2fd39a);border:0;border-radius:2em;padding:.72em 1.9em;cursor:pointer;box-shadow:0 8px 24px -8px #2fd39aaa}
   .wbox button:hover{filter:brightness(1.07)}
@@ -190,7 +193,9 @@
 
 <div class="welcome" id="welcome">
   <div class="wbox">
-    <h1><span id="welFlower"></span> Välkommen till batch-arbetet</h1>
+    <h1><span id="welFlower"></span> <span id="welName">Välkommen till batch-arbetet</span></h1>
+    <p class="why" id="welWhy"></p>
+    <p class="saying" id="welSaying"></p>
     <p class="lead" id="welLead">–</p>
     <p class="cap" id="welCap"></p>
     <button id="welBtn">Visa dashboarden</button>
@@ -476,9 +481,10 @@
     var N=5,labels="",lines="";for(var k=0;k<=N;k++){var f=k/N;labels+='<span style="position:absolute;left:'+(f*100)+'%;transform:translateX(-50%);font-size:.72em;color:var(--tx3)">'+fmtClock(t0+f*span)+'</span>';lines+='<div style="position:absolute;left:'+(f*100)+'%;top:0;bottom:0;border-left:1px solid var(--line)"></div>';}
     var rows="";T.slice().sort(function(a,b){return a.t0-b.t0}).forEach(function(i){
       var l=(i.t0-t0)/span*100, w=Math.max(1.2,(i.t1-i.t0)/span*100), col=i===heavy?"var(--active)":"var(--done)", lab=fmtDur(i.t1-i.t0)+" · "+fmtTok(i.tokens), after=l+w<78;
-      rows+='<div style="display:flex;align-items:center;gap:.6em;margin:.2em 0"><div style="flex:0 0 5.5em;text-align:right;font:600 .78em ui-monospace,Menlo,monospace;color:var(--tx2)">'+esc(i.id)+'</div><div style="position:relative;flex:1;height:1.4em"><div style="position:absolute;left:'+l+'%;width:'+w+'%;top:.18em;bottom:.18em;background:'+col+';border-radius:.25em;min-width:3px"></div><div style="position:absolute;'+(after?'left:calc('+(l+w)+'% + .45em)':'right:calc('+(100-l)+'% + .45em)')+';top:.12em;font-size:.71em;color:var(--tx3);white-space:nowrap">'+lab+'</div></div></div>';
+      // Rad-etikett bär ID + kort titel (trunkeras) så man förstår vad posten var utan att minnas ID:t.
+      rows+='<div style="display:flex;align-items:center;gap:.6em;margin:.2em 0"><div title="'+esc(i.id)+" · "+esc(i.t)+'" style="flex:0 0 13em;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 .78em ui-monospace,Menlo,monospace;color:var(--tx2)">'+esc(i.id)+" · "+esc(i.t)+'</div><div style="position:relative;flex:1;height:1.4em"><div style="position:absolute;left:'+l+'%;width:'+w+'%;top:.18em;bottom:.18em;background:'+col+';border-radius:.25em;min-width:3px"></div><div style="position:absolute;'+(after?'left:calc('+(l+w)+'% + .45em)':'right:calc('+(100-l)+'% + .45em)')+';top:.12em;font-size:.71em;color:var(--tx3);white-space:nowrap">'+lab+'</div></div></div>';
     });
-    return '<h2>Så gick körningen</h2>'+stats+heavyBox+'<div style="position:relative;margin:1.7em 0 .6em"><div style="position:relative;height:1.1em;margin-left:6.1em">'+labels+'</div><div style="position:relative"><div style="position:absolute;left:6.1em;right:0;top:0;bottom:0;pointer-events:none">'+lines+'</div><div style="position:relative">'+rows+'</div></div></div>';
+    return '<h2>Så gick körningen</h2>'+stats+heavyBox+'<div style="position:relative;margin:1.7em 0 .6em"><div style="position:relative;height:1.1em;margin-left:13.6em">'+labels+'</div><div style="position:relative"><div style="position:absolute;left:13.6em;right:0;top:0;bottom:0;pointer-events:none">'+lines+'</div><div style="position:relative">'+rows+'</div></div></div>';
   }
 
   function renderReport(){
@@ -518,6 +524,11 @@
     if(TASK){return;}
     if(localStorage.getItem(welKey)){showDash();return;}
     document.getElementById("welFlower").innerHTML=fl(FLW[1],"1.1em",0);
+    document.getElementById("welName").textContent=D.name?("Välkommen till «"+D.name+"»"):"Välkommen till batch-arbetet";
+    var whyEl=document.getElementById("welWhy");
+    whyEl.textContent=D.nameWhy||"";whyEl.style.display=D.nameWhy?"":"none";
+    var sayEl=document.getElementById("welSaying");
+    sayEl.textContent=D.saying?("”"+D.saying+"”"):"";sayEl.style.display=D.saying?"":"none";
     document.getElementById("welLead").textContent="Det här är din live-vy för batchjobbet ("+D.items.length+" poster). Följ hur de betas av i realtid – korten uppdateras in-place (ingen helsidesladdning) medan jag jobbar, med ett blomster-firande när en post blir klar och en hel äng längs kanterna när HELA batchen är klar.";
     document.getElementById("welCap").innerHTML=D.bgCaption||"";
     wel.classList.add("show");

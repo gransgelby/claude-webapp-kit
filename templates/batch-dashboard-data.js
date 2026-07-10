@@ -5,7 +5,9 @@
 //
 // Shape reference (empty-state starter — replace with your batch's real content):
 //   status:      "running" | "paused" | "aborted" | "done"
-//   name:        batch name shown in the header namebox
+//   name:        batch name shown in the header namebox + on the welcome screen ("Välkommen till «name»")
+//   nameWhy:     one line explaining WHY the batch got that name (shown on the welcome screen)
+//   saying:      a fitting proverb/aphorism (humorous undertone) shown in quotes on the welcome screen
 //   bgId:        stable id for the background/welcome (bump to re-show the welcome screen)
 //   prevDone:    ids of items completed in a PREVIOUS pass (rendered muted, no flowers)
 //   updated:     short "what's the latest" line
@@ -24,6 +26,8 @@
 window.__applyBatch({
   "status": "running",
   "name": "Batchjobb",
+  "nameWhy": "Kort förklaring till varför batchen fick sitt namn (visas på välkomst-skärmen).",
+  "saying": "Ett passande talesätt med glimten i ögat.",
   "bgId": "batch-000",
   "prevDone": [],
   "updated": "Batchen startar – posterna betas av en och en.",
