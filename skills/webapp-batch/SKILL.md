@@ -57,6 +57,13 @@ cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/batch-<datum>
 ## Resume över sessioner
 En stor batch ryms sällan i ett context-fönster. Tillståndet ligger **på disk**: dashboarden (`-data.js`) bär per-post-status, git-trädet bär koden, och en `reports/batch-<datum>-state.md` bär scope-beslut/defaults/körordning + "så här återupptar du". En ny session läser dessa + nästa `waiting`-post och fortsätter utan att fråga om igen. Trigger: "fortsätt batchjobbet".
 
+## Fånga per-post-timing + tokens (för retrospektiven)
+Genom hela körningen: **stämpla `t0` (epoch ms) på varje post när den startar** (`date +%s%3N`), och när
+dess subagent är klar sätt **`t1 = t0 + subagentens duration_ms`** och **`tokens = subagentens
+subagent_tokens`** (båda finns i subagentens slutnotis) i postens item i `-data.js`. Dessa tre fält driver
+retrospektiv-sektionen "Så gick körningen" (stats + tyngsta jobbet + tidslinje) som mallen renderar vid frys.
+Kostar nästan inget och gör slutrapporten mätbar. (Görs posten inline utan subagent: stämpla t0/t1 själv.)
+
 ## Steg 4 — Testfall sist i rapporten (obligatoriskt)
 Lägg **detaljerade testfall** sist, i data-fältet `tests: { must: [...], nice: [...] }`, varje post `{id, t, steps, expect}`:
 - **Måste testas** (`must`) — sådant Claude **inte** kunnat verifiera själv (prod, externa tjänster, riktig data, interaktivt).

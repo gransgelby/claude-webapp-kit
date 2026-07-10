@@ -36,5 +36,10 @@ Innan commit av en Tier A-**kod**post: låt en **andra subagent** adversariellt 
 ## Autonomi & säkerhet
 Obevakad körning ska köras under **smal allowlist, ingen bypass** av permission-systemet. Frågar en ofarlig rutin ändå → det är en **säker stall**: hoppa posten, notera, gå vidare. Full obevakad körning med utökade rättigheter hör hemma i en **sandlåda** (VM/container/separat konto), aldrig på en personlig huvudmaskin — och är då ett eget beslut.
 
+## Retrospektiv-data
+Varje subagents slutnotis bär `duration_ms` + `subagent_tokens` — **fånga dem per post** (stämpla `t0` när
+posten startar, sätt `t1 = t0 + duration_ms` och `tokens = subagent_tokens` i `-data.js`). De driver
+"Så gick körningen"-sektionen (stats + tyngsta jobbet + tidslinje) i slutrapporten. Se webapp-batch-skillen.
+
 ## Slut
 När allt är gjort eller sessionen når sitt tak: **frys dashboarden**, lägg testfallen sist (måste/får-gärna), skriv en kort status i `-data.js`. För ett obevakat pass: **gör inte** doc-hygien-sweepen/mergen automatiskt — lämna det till morgon-reviewen (Tier B behöver sign-off först). Committa allt på grenen. Leverera resultatet enligt breakfast-report-skillen (bara sökvägen i chatten).

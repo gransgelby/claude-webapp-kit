@@ -16,7 +16,11 @@
 //                each test: {id, t (title), steps, expect}
 //   items[]:     one per task — {id, t (title), size:"liten"|"medel"|"stor",
 //                phase:"waiting"|"starting"|"active"|"testing"|"done"|"blocked"|"input",
-//                activity (in-progress line), note (done writeup), before, after (image paths)}
+//                activity (in-progress line), note (done writeup), before, after (image paths),
+//                t0, t1 (epoch ms start/end — stamp t0 when the post starts, set t1 = t0 + the
+//                subagent's duration_ms on completion), tokens (the subagent's subagent_tokens).
+//                → these three power the "Så gick körningen"-retrospektiv (stats + tyngsta jobbet
+//                  + tidslinje) that renders at freeze. Omit them and the section is simply skipped.
 window.__applyBatch({
   "status": "running",
   "name": "Batchjobb",

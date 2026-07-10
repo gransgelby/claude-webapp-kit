@@ -458,14 +458,37 @@
     if(!booted){booted=true;renderMarks();firstShow();setInterval(tick,1000);}
   };
 
+  // --- Retrospektiv: "Så gick körningen" (stats + tyngsta jobbet + tidslinje) ---
+  // Läser per-post-timing från item.t0/item.t1 (epoch ms) + item.tokens (subagent-tokens).
+  // Saknas timing (gammal batch) → sektionen hoppas helt över.
+  function fmtDur(ms){var m=Math.round(ms/60000);return m<60?m+"m":Math.floor(m/60)+"h "+(m%60)+"m";}
+  function fmtTok(n){return n==null?"–":(n>=1000?Math.round(n/1000)+"k":(""+n));}
+  function fmtClock(ms){var d=new Date(ms);return ("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2);}
+  function statBox(v,l){return '<div><div style="font:700 1.55em/1 ui-monospace,Menlo,monospace;color:var(--tx)">'+v+'</div><div style="font-size:.76em;color:var(--tx3);margin-top:.2em">'+l+'</div></div>';}
+  function renderRetro(done){
+    var T=done.filter(function(i){return typeof i.t0==="number"&&typeof i.t1==="number"&&i.t1>=i.t0;});
+    if(!T.length)return "";
+    var t0=Math.min.apply(null,T.map(function(i){return i.t0})), t1=Math.max.apply(null,T.map(function(i){return i.t1})), span=Math.max(1,t1-t0);
+    var totTok=T.reduce(function(s,i){return s+(i.tokens||0)},0);
+    var heavy=T.slice().sort(function(a,b){return (b.tokens||0)-(a.tokens||0)||((b.t1-b.t0)-(a.t1-a.t0))})[0];
+    var stats='<div style="display:flex;flex-wrap:wrap;gap:1.6em;margin:.3em 0 1.1em">'+statBox(fmtClock(t0)+"–"+fmtClock(t1),"start–slut")+statBox(fmtDur(span),"total tid")+statBox(fmtTok(totTok),"tokens totalt")+statBox(T.length,"poster")+statBox(fmtDur(span/T.length),"snitt/post")+'</div>';
+    var heavyBox='<div style="border-left:3px solid var(--active);background:#241d0b66;padding:.5em .85em;border-radius:.4em;margin-bottom:1.3em;font-size:.92em;color:var(--tx2)">Tyngsta jobbet: <b style="color:var(--tx)">'+esc(heavy.id)+" · "+esc(heavy.t)+'</b> — '+fmtDur(heavy.t1-heavy.t0)+", "+fmtTok(heavy.tokens)+" tokens</div>";
+    var N=5,labels="",lines="";for(var k=0;k<=N;k++){var f=k/N;labels+='<span style="position:absolute;left:'+(f*100)+'%;transform:translateX(-50%);font-size:.72em;color:var(--tx3)">'+fmtClock(t0+f*span)+'</span>';lines+='<div style="position:absolute;left:'+(f*100)+'%;top:0;bottom:0;border-left:1px solid var(--line)"></div>';}
+    var rows="";T.slice().sort(function(a,b){return a.t0-b.t0}).forEach(function(i){
+      var l=(i.t0-t0)/span*100, w=Math.max(1.2,(i.t1-i.t0)/span*100), col=i===heavy?"var(--active)":"var(--done)", lab=fmtDur(i.t1-i.t0)+" · "+fmtTok(i.tokens), after=l+w<78;
+      rows+='<div style="display:flex;align-items:center;gap:.6em;margin:.2em 0"><div style="flex:0 0 5.5em;text-align:right;font:600 .78em ui-monospace,Menlo,monospace;color:var(--tx2)">'+esc(i.id)+'</div><div style="position:relative;flex:1;height:1.4em"><div style="position:absolute;left:'+l+'%;width:'+w+'%;top:.18em;bottom:.18em;background:'+col+';border-radius:.25em;min-width:3px"></div><div style="position:absolute;'+(after?'left:calc('+(l+w)+'% + .45em)':'right:calc('+(100-l)+'% + .45em)')+';top:.12em;font-size:.71em;color:var(--tx3);white-space:nowrap">'+lab+'</div></div></div>';
+    });
+    return '<h2>Så gick körningen</h2>'+stats+heavyBox+'<div style="position:relative;margin:1.7em 0 .6em"><div style="position:relative;height:1.1em;margin-left:6.1em">'+labels+'</div><div style="position:relative"><div style="position:absolute;left:6.1em;right:0;top:0;bottom:0;pointer-events:none">'+lines+'</div><div style="position:relative">'+rows+'</div></div></div>';
+  }
+
   function renderReport(){
     var el=document.getElementById("report");
     var done=D.items.filter(function(i){return i.phase==="done"});
     var inputs=D.items.filter(function(i){return i.phase==="input"});
-    var sig=JSON.stringify(done.map(function(i){return[i.id,i.note,i.before,i.after]}))+"|"+
+    var sig=JSON.stringify(done.map(function(i){return[i.id,i.note,i.before,i.after,i.t0,i.t1,i.tokens]}))+"|"+
             JSON.stringify(inputs.map(function(i){return[i.id,i.question||i.note]}))+"|"+JSON.stringify(D.tests||null);
     if(el.getAttribute("data-sig")===sig)return; el.setAttribute("data-sig",sig);
-    var h='<h2>Genomförda tasks ('+done.length+')</h2>';
+    var h=(D.status!=="running"?renderRetro(done):"")+'<h2>Genomförda tasks ('+done.length+')</h2>';
     done.forEach(function(it){
       var imgs="";
       if(it.before||it.after){imgs='<div class="rimgs">'+(it.before?'<figure><img src="'+it.before+'"><figcaption>FÖRE</figcaption></figure>':'')+(it.after?'<figure><img src="'+it.after+'"><figcaption>EFTER</figcaption></figure>':'')+'</div>';}
