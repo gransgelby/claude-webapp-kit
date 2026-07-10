@@ -11,16 +11,17 @@ import dynamic from 'next/dynamic'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { getAuthStatus } from '@/lib/designToolAdapter'
 import { hasExternalDesignLauncher, subscribeDesignLaunchers, type DesignAnchor } from '@/lib/designToolBus'
-import type { DtThemeId } from '@/lib/design/dtTheme'
+import { DEFAULT_DT_THEME, dtThemeVars, type DtThemeId } from '@/lib/design/dtTheme'
 
 const DesignToolShell = dynamic(() => import('./design/DesignToolShell'), { ssr: false })
 
 export default function DesignTool() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [launcherHover, setLauncherHover] = useState(false)
   const anchorRef = useRef<DesignAnchor | null>(null)
   // Auto-öppna via URL (admin-gated dev-affordans + gör verktyget skärmdumpbart
-  // för nattjobbets shot.js): ?designtool=open [&dtpalette=1] [&dtchrome=neon].
+  // för nattjobbets shot.js): ?designtool=open [&dtpalette=1] [&dtchrome=precision-light].
   const bootRef = useRef<{ palette: boolean; designMode: boolean; theme?: DtThemeId }>({ palette: false, designMode: false })
   const externalLauncher = useSyncExternalStore(subscribeDesignLaunchers, hasExternalDesignLauncher, () => false)
 
@@ -33,7 +34,7 @@ export default function DesignTool() {
       bootRef.current = {
         palette: p.get('dtpalette') === '1',
         designMode: p.get('dtmode') === 'design',
-        theme: (['midnight', 'precision', 'neon'] as const).find((t) => t === p.get('dtchrome')),
+        theme: (['precision-dark', 'precision-light'] as const).find((t) => t === p.get('dtchrome')),
       }
       setLoaded(true)
     }
@@ -64,16 +65,27 @@ export default function DesignTool() {
 
   // Pre-load: en lätt launcher (döljs om en yta redan har en Design-knapp, då
   // kommer öppningen via bussen i stället). Klick → ladda shellen öppen.
+  //
+  // C1: verktyget är FRIKOPPLAT från appens eget tema. Denna knapp renderas
+  // innan shellen (och dess `.dt-root`) monterats, så `--dt-*`-tokens finns inte
+  // ännu i DOM-trädet – därför sätter vi default-valörens `--dt-*` INLINE på just
+  // knappen och stylar den med dem. Ingen app-accent, ingen hårdkodad hex: samma
+  // token-källa som resten av verktyget.
   if (externalLauncher) return null
   return (
     <button
       type="button"
       onClick={(e) => { anchorRef.current = e.currentTarget.getBoundingClientRect(); setLoaded(true) }}
+      onMouseEnter={() => setLauncherHover(true)}
+      onMouseLeave={() => setLauncherHover(false)}
       style={{
+        ...dtThemeVars(DEFAULT_DT_THEME),
         position: 'fixed', left: 12, bottom: 12, zIndex: 2147483000,
-        padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-        border: '1px solid rgba(251,191,36,0.5)', background: 'rgba(24,20,12,0.82)', color: '#fde6b8',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.4)', fontFamily: 'var(--font-manrope, system-ui), sans-serif',
+        padding: '6px 12px', borderRadius: 'var(--dt-radius)', fontSize: 'var(--dt-text-sm)', fontWeight: 600, cursor: 'pointer',
+        border: '1px solid var(--dt-border-strong)', background: 'var(--dt-surface-solid)', color: 'var(--dt-text)',
+        boxShadow: 'var(--dt-shadow)', fontFamily: 'var(--dt-font)',
+        filter: launcherHover ? 'brightness(var(--dt-hover-bright))' : 'none',
+        transition: 'filter var(--dt-dur-fast) var(--dt-spring)',
       }}
     >
       ✎ Design

@@ -32,6 +32,9 @@ export interface GridGeom {
   gap: number
   /** Container-vänsterkant + vänster-padding, i samma koordinatrum som barnen. */
   originX: number
+  /** Containerns inre marginaler (padding, px) – sidans "luft" mot kanterna (B1). */
+  padLeft?: number
+  padRight?: number
 }
 
 const clampInt = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.round(n)))

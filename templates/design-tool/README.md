@@ -17,18 +17,46 @@ lib/pageGrid.tsx            <PageGrid> + GridConfig-kontrakt (default 12 kol)   
 lib/designToolAdapter.ts    DEN ENDA SÖMMEN: grid + admin-gate + note-persistens ← DU WIRAR
 lib/designToolBus.ts        launcher-buss (app-oberoende)                        ← rör inte
 lib/design/dtConfig.ts      token-prefix + storage-namespace (default '--c-')    ← justera v.b.
-lib/design/dtTheme.ts       verktygets egna --dt-*-tokens + 3 chrome-teman       ← rör inte
+lib/design/dtTheme.ts       verktygets egna --dt-*-tokens + temapar Precision    ← rör inte
 lib/design/colorUtils.ts    ren färg-/WCAG-matte (testad)                        ← app-agnostisk
 lib/design/appTokens.ts     läser/skriver appens tokens live (prefix ur dtConfig)
 lib/design/elementModel.ts  element→etikett, "närmaste meningsfulla element"
 lib/design/elementSource.ts element→fil:rad ("vad är det här?")
 lib/design/gridModel.ts     grid-geometri (placement, rader, överlapp)          ← app-agnostisk
 lib/design/layoutTools.ts   align/distribute/mät (testad)                        ← app-agnostisk
+lib/design/regionModel.ts   v2: nästlad region-hierarki ur godtycklig DOM (testad) ← app-agnostisk
+lib/design/heightModel.ts   v2: skalenliga höjder + granne-snap (testad)         ← app-agnostisk
+lib/design/regionNames.ts   v2: vettiga regionsnamn utan instansdata (testad)    ← app-agnostisk
+lib/design/mediaEmu.ts      v2: @media-omskrivning för äkta mobil-spegel (testad) ← app-agnostisk
+lib/design/reflowModel.ts   v2: flytta = reflow/infoga, aldrig ovanpå (testad)   ← app-agnostisk
+lib/design/viewSync.ts      v2: synk pan/zoom + split + MacBook-rekt (testad)    ← app-agnostisk
+lib/design/savePayload.ts   v2: osparat-signatur + utökad layout-payload (testad) ← app-agnostisk
 components/DesignTool.tsx    tunn monterings-komponent: admin-gate + lazy-load
 components/design/*          shell, Design mode, egenskaps-panel, inspector, palett
 scripts/check-grid.mjs       grid-lint (parametriserbar sidlista)                ← app-agnostisk
 *.test.ts                    Vitest-enhetstester för den rena logiken
 ```
+
+## Design mode v2 — wireframen som skalmodell
+
+Design mode gör den högra wireframen till en **trogen, nästlad, skalenlig spegel** av den
+riktiga sidan. Allt drivs av rena, testade moduler som opererar på **godtycklig DOM** (ingen
+app-kunskap):
+
+- **Nästlad auto-uppdelning** (`regionModel`) — bryter valfri sida i en region-hierarki
+  (kort-ytor, semantik, upprepade grid/flex-barn) utan sid-specifika undantag.
+- **Skalenlig wireframe + höjder** (`heightModel`) — varje region får höjd ur sin verkliga
+  bounding-box; fasta höjder får dra-handtag med granne-snap.
+- **Vettiga regionsnamn** (`regionNames`) — namn ur aria/rubrik/typ, aldrig instansdata.
+- **Äkta mobil-spegel** (`mediaEmu`) — skriver om bredd-@media som om fönstret vore mobilt.
+- **Flytt = reflow/infoga** (`reflowModel`) — släpp packar grannen i sidled eller egen rad,
+  aldrig ovanpå; hela knuffen är EN ⌘Z-post.
+- **Synkad pan/zoom + avdelare + MacBook-rektangel** (`viewSync`) — båda panelerna rör sig i
+  synk via dokumentposition; 50/50-snap; standardskärm-rektangel vid utzoom.
+- **Osparat-detektering + utökad spara-payload** (`savePayload`) — layout-signatur flaggar
+  osparade ändringar; nästlade flyttar/höjder följer med som deltan.
+- **Temapar Precision** (`dtTheme`) — exakt två valörer (ljus/mörk) av samma lugna tema,
+  WCAG-AA-verifierat, med en varm `--dt-save`-accent för Spara-handlingar.
 
 ## Färdigskeppat vs vad du kopplar själv
 
@@ -36,7 +64,7 @@ scripts/check-grid.mjs       grid-lint (parametriserbar sidlista)               
 |---|---|
 | `<PageGrid>`-primitiv, 12-kol default, `data-grid-cols` + gap-token | Att faktiskt **lägga din vy** på `<PageGrid>` (byt korten till `col-span-*`) |
 | Grid-lint med self-test + parametriserbar sidlista | Peka linten på **dina** griddade sidor (CLI/env/`grid-lint.config.json`) |
-| Verktygets `--dt-*`-tokens, Shadow-scope, 3 chrome-teman, ⌘K-palett, toasts, reduced-motion | — |
+| Verktygets `--dt-*`-tokens, `.dt-root`-scope, temaparet Precision (ljus/mörk), ⌘K-palett, toasts, reduced-motion | — |
 | Adapter med **localStorage-default** för notes (kör i preview) | Byt `saveDesignNote/listDesignNotes/deleteDesignNote` mot **din backend** |
 | Admin-gate-stub (`admin` i dev, `anon` i prod) | Byt `getAuthStatus()` mot **din riktiga auth** |
 | Live token-läsning/-skrivning för prefix `--c-` | Sätt ditt eget `tokenPrefix` i `dtConfig` om det avviker |

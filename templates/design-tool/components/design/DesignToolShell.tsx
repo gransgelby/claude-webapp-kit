@@ -5,9 +5,9 @@
 //   • Två-läges-ramverk: in-app OVERLAY (dagens sätt) + helskärms DESIGN MODE (skal, Post 3).
 //   • Lyx-lager: kommandopalett (⌘K), kvarhållet tillstånd, reduced-motion,
 //     toasts med inline-ångra, mjuka fjäder-animationer, precisa cursors.
-//   • 2–3 chrome-riktningar (Midnattsglas / Ljus precision / Neon) via stil-växel.
-// Bevarar all funktion från I49: element-plock, rita ruta, kommentar, anteckningar,
-// spara → design-notes, Rutt-design-toggle, extern-launcher-bussen.
+//   • Temapar: Precision Mörk / Precision Ljus (två valörer av samma lugna tema) via stil-växel.
+// Bevarar all funktion: element-plock, rita ruta, kommentar, anteckningar,
+// spara → design-notes, extern-launcher-bussen.
 //
 // Admin-gating + lazy-load sker i den TUNNA monterings-komponenten components/DesignTool.tsx
 // (denna fil laddas bara när en admin faktiskt öppnar verktyget).
@@ -22,7 +22,7 @@ import DesignModeShell from './DesignModeShell'
 import PropertyPanel from './PropertyPanel'
 import ElementInspector from './ElementInspector'
 import { nearestMeaningfulElement } from '@/lib/design/elementModel'
-import { dtBtn, dtGhostBtn, dtInput } from './dtStyles'
+import { dtBtn, dtGhostBtn, dtInput, dtSaveBtn } from './dtStyles'
 
 type Mode = 'idle' | 'pick' | 'draw' | 'notes' | 'gcomment'
 type Rect = { x: number; y: number; w: number; h: number }
@@ -75,6 +75,43 @@ const KEYFRAMES = `
 @keyframes dtFade { from { opacity: 0 } to { opacity: 1 } }
 @keyframes dtPop { from { opacity: 0; transform: translateY(6px) scale(0.98) } to { opacity: 1; transform: translateY(0) scale(1) } }
 @keyframes dtSlideUp { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: translateY(0) } }
+
+/* C3: hover-feedback på ALLA interaktiva kontroller, scopat till verktyget
+   (.dt-root täcker overlay-panel, Design mode, palett, egenskaps-/element-paneler).
+   Slöjan (inset box-shadow · --dt-hover-veil) tintar även transparenta ghost-knappar
+   utan att röra deras inline-bakgrund; brightness (--dt-hover-bright) backar upp knappar
+   med egen inline-boxShadow (launcher/toast). Transition respekterar reduced-motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .dt-root button,
+  .dt-root [data-dt-hoverable],
+  .dt-root [data-dt-divider] > div,
+  .dt-root input[type="range"],
+  .dt-root input[type="color"] {
+    transition: box-shadow var(--dt-dur-fast) var(--dt-spring),
+                filter var(--dt-dur-fast) var(--dt-spring),
+                background-color var(--dt-dur-fast) var(--dt-spring),
+                border-color var(--dt-dur-fast) var(--dt-spring),
+                transform var(--dt-dur-fast) var(--dt-spring),
+                color var(--dt-dur-fast) var(--dt-spring);
+  }
+}
+.dt-root button:not(:disabled):hover,
+.dt-root [data-dt-hoverable]:not([data-disabled="true"]):hover,
+.dt-root input[type="color"]:hover {
+  box-shadow: inset 0 0 0 999px var(--dt-hover-veil);
+  filter: brightness(var(--dt-hover-bright));
+}
+.dt-root input[type="range"]:hover { filter: brightness(var(--dt-hover-bright)); }
+.dt-root button:not(:disabled):active,
+.dt-root [data-dt-hoverable]:not([data-disabled="true"]):active {
+  transform: translateY(0.5px);
+  filter: brightness(var(--dt-hover-bright)) saturate(1.04);
+}
+/* Avdelaren (B3): hela handtaget lyser upp till accent + tjocknar på hover. */
+.dt-root [data-dt-divider]:hover > div {
+  background: var(--dt-accent) !important;
+  width: 3px !important;
+}
 `
 
 export default function DesignToolShell({
@@ -281,7 +318,7 @@ export default function DesignToolShell({
     { id: 'gcomment', section: 'Verktyg', glyph: '✎', title: 'Fri kommentar', keywords: 'feedback text', run: () => { setOpen(true); exitMode(); setMode('gcomment') } },
     { id: 'notes', section: 'Verktyg', glyph: '☰', title: 'Anteckningar', keywords: 'lista sparade notes', run: () => { setOpen(true); void openNotes() } },
     // App-specifika kommandon: lägg till egna Command-objekt här (t.ex. dispatcha
-    // ett eget window-event). Den porterade "Rutt-design" var app-projektet-specifik.
+    // ett eget window-event). App-specifika verktygskommandon portas inte hit.
     { id: 'designmode', section: 'Läge', glyph: '▦', title: 'Öppna Design mode', hint: 'helskärm', keywords: 'canvas wireframe två-panel', run: () => { patch({ lastMode: 'design' }); setDesignMode(true) } },
     { id: 'close', section: 'Läge', glyph: '✕', title: 'Stäng verktyget', keywords: 'göm', run: () => { exitMode(); setOpen(false) } },
     ...DT_THEME_ORDER.map((id): Command => ({
@@ -384,7 +421,7 @@ export default function DesignToolShell({
                 <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', margin: '0 0 6px' }}>Fri kommentar om den här sidan (ej kopplad till ett element).</p>
                 <textarea value={genComment} onChange={(e) => setGenComment(e.target.value)} placeholder="Generell feedback om sidan…" rows={3} style={dtInput()} />
                 <div style={{ display: 'flex', gap: 'var(--dt-space-2)', marginTop: 'var(--dt-space-2)' }}>
-                  <button type="button" onClick={saveGeneral} style={{ ...dtBtn(true), flex: 1 }}>Spara kommentar</button>
+                  <button type="button" onClick={saveGeneral} style={{ ...dtSaveBtn(), flex: 1 }}>Spara kommentar</button>
                   <button type="button" onClick={() => { setGenComment(''); setMode('idle') }} style={dtGhostBtn()}>Avbryt</button>
                 </div>
               </div>
@@ -404,7 +441,7 @@ export default function DesignToolShell({
               <div style={{ marginTop: 'var(--dt-space-3)', borderTop: '1px solid var(--dt-border)', paddingTop: 'var(--dt-space-2)' }}>
                 <textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Kommentera rutans innehåll…" rows={3} style={dtInput()} />
                 <div style={{ display: 'flex', gap: 'var(--dt-space-2)', marginTop: 'var(--dt-space-2)' }}>
-                  <button type="button" onClick={saveComment} style={{ ...dtBtn(true), flex: 1 }}>Spara kommentar</button>
+                  <button type="button" onClick={saveComment} style={{ ...dtSaveBtn(), flex: 1 }}>Spara kommentar</button>
                   <button type="button" onClick={() => { setDraw(null); setComment('') }} style={dtGhostBtn()}>Avbryt</button>
                 </div>
               </div>

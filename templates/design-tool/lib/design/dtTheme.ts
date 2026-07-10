@@ -1,8 +1,12 @@
-// DesignTool-shellens EGNA token-set (`--dt-*`). Post 2 (nattjobb 2026-07-10).
+// DesignTool-shellens EGNA token-set (`--dt-*`). Frikopplat från appens eget
+// tema; levereras med temaparet Precision (ljus + mörk).
 //
-// VIKTIGT designbeslut (inbakat i nattjobbet): verktyget stylar sig ALDRIG med
-// appens `--c-*`-tokens. Det *läser/redigerar* appens tokens som DATA (Post 4),
-// men dess egen chrome (HMI) drivs uteslutande av dessa `--dt-*`-variabler.
+// VIKTIGT designbeslut (inbakat): verktyget stylar sig ALDRIG med appens egna
+// design-tokens (prefixet i dtConfig, default `--c-*`). Det *läser/redigerar*
+// appens tokens som DATA, men dess egen chrome (HMI) drivs UTESLUTANDE av dessa
+// `--dt-*`-variabler. DesignTool är ett GENERELLT verktyg och appens eget
+// gränssnitt är app-specifikt – de delar varken tema eller tokens. (Verktyget
+// lånar aldrig en accent ur appen; chrome-valören står helt på egna ben.)
 //
 // Scope-val: Shadow DOM bedömdes för invasivt för ett verktyg som lever av
 // `document.elementFromPoint`, live-redigerar den riktiga DOM:en och lägger
@@ -11,9 +15,15 @@
 // existerar bara under verktyget och kan aldrig läcka ut i appen. CSS custom
 // properties ärvs genom DOM-trädet (inte den visuella boxen), så även
 // fixed-positionerade barn (panel, palett) under `.dt-root` ser dem. Byte av
-// chrome-tema = byt värde-uppsättning → hela HMI:t skiftar. (Dokumenterat val.)
+// chrome-valör = byt värde-uppsättning → hela HMI:t skiftar. (Dokumenterat val.)
+//
+// TEMAPAR (C2): exakt TVÅ valörer av SAMMA lugna "Precision"-tema – ljus och mörk
+// – identiska bortsett från ljus/mörk. Verktyget ska vara diskret i bakgrunden så
+// fokus ligger på APPENS utseende: låg mättnad, samma indigo accent-hue, ingen
+// neon-glöd. Mörk = dämpad Precision (inte glas, inte neon). Alla text-/kontroll-
+// kombinationer klarar WCAG-AA i BÅDA valörerna (verifierat i dtTheme.test.ts).
 
-export type DtThemeId = 'midnight' | 'precision' | 'neon'
+export type DtThemeId = 'precision-dark' | 'precision-light'
 
 export interface DtTheme {
   id: DtThemeId
@@ -29,8 +39,8 @@ export interface DtTheme {
   vars: Record<string, string>
 }
 
-// Gemensam skala (radius/space/typografi/motion) – delas av alla teman så bara
-// färg/yta/accent skiljer dem åt. Motion-varaktigheten nollas vid reduced-motion.
+// Gemensam skala (radius/space/typografi/motion) – delas av båda valörerna så bara
+// yta/text skiljer dem åt. Motion-varaktigheten nollas vid reduced-motion.
 const SHARED: Record<string, string> = {
   'radius-sm': '6px',
   radius: '10px',
@@ -55,44 +65,56 @@ const SHARED: Record<string, string> = {
   'spring-bounce': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 }
 
+// Precision-temats DELADE identitet – samma i båda valörerna så ljus/mörk är
+// "samma tema, två valörer" (samma accent-hue, samma varma Spara-accent).
+const SAVE = '#c2410c'           // röd-orange (bränd orange) Spara-accent – varm, tydlig
+const SAVE_CONTRAST = '#ffffff'  // vit knapptext (kontrast 5.18:1 mot SAVE → WCAG-AA)
+
 export const DT_THEMES: Record<DtThemeId, DtTheme> = {
-  // 1) Midnattsglas – mörk, translucent glas-HMI med bärnstens-guld accent
-  //    (ärver admin-verktygets etablerade amber-signal). Mission-control-känsla.
-  midnight: {
-    id: 'midnight',
-    name: 'Midnattsglas',
-    short: 'Midnatt',
-    feel: 'Mörk glas-HMI med guldaccent – lugn kommandobrygga',
+  // 1) Precision Mörk – dämpad, lugn mörk yta med indigo accent (samma hue som
+  //    ljus, lyft för kontrast på mörkt). Ingen glöd, låg mättnad. Default:
+  //    kommandocentral-känsla men diskret så APPEN är i fokus.
+  'precision-dark': {
+    id: 'precision-dark',
+    name: 'Precision Mörk',
+    short: 'Mörk',
+    feel: 'Dämpad mörk yta med lugn indigo accent – diskret kommandobrygga',
     base: 'dark',
     vars: {
       ...SHARED,
-      surface: 'rgba(24, 20, 12, 0.82)',
-      'surface-2': 'rgba(42, 34, 18, 0.72)',
-      'surface-raised': 'rgba(52, 42, 22, 0.94)',
-      'surface-solid': '#1a1610',
-      text: '#fde6b8',
-      'text-dim': 'rgba(253, 230, 184, 0.72)',
-      'text-mute': 'rgba(253, 230, 184, 0.45)',
-      accent: '#fcd34d',
-      'accent-weak': 'rgba(251, 191, 36, 0.16)',
-      'accent-line': 'rgba(251, 191, 36, 0.34)',
-      'accent-contrast': '#231a06',
-      border: 'rgba(251, 191, 36, 0.22)',
-      'border-strong': 'rgba(251, 191, 36, 0.5)',
-      shadow: '0 6px 24px rgba(0, 0, 0, 0.5)',
-      'shadow-lg': '0 18px 60px rgba(0, 0, 0, 0.62)',
-      blur: 'blur(16px) saturate(1.3)',
+      surface: 'rgba(22, 26, 38, 0.9)',
+      'surface-2': 'rgba(30, 35, 50, 0.92)',
+      'surface-raised': '#1a1f2e',
+      'surface-solid': '#121622',
+      text: '#e6e9f5',
+      'text-dim': 'rgba(230, 233, 245, 0.66)',
+      'text-mute': 'rgba(230, 233, 245, 0.42)',
+      accent: '#818cf8',
+      'accent-weak': 'rgba(129, 140, 248, 0.14)',
+      'accent-line': 'rgba(129, 140, 248, 0.35)',
+      'accent-contrast': '#10131f',
+      border: 'rgba(255, 255, 255, 0.1)',
+      'border-strong': 'rgba(129, 140, 248, 0.5)',
+      shadow: '0 6px 24px rgba(0, 0, 0, 0.45)',
+      'shadow-lg': '0 18px 55px rgba(0, 0, 0, 0.6)',
+      blur: 'blur(14px) saturate(1.05)',
       glow: '0 0 0 rgba(0,0,0,0)',
-      scrim: 'rgba(8, 6, 2, 0.55)',
+      scrim: 'rgba(6, 8, 14, 0.55)',
+      // C4: varm Spara-accent (samma i båda valörerna).
+      save: SAVE,
+      'save-contrast': SAVE_CONTRAST,
+      // C3: hover-slöja (subtil ljusning på mörkt) + ljushets-faktor.
+      'hover-veil': 'rgba(255, 255, 255, 0.07)',
+      'hover-bright': '1.09',
     },
   },
-  // 2) Ljus precision – nära-vit, knivskarp, subtila skuggor, indigo accent.
-  //    Figma-ren verktygskänsla.
-  precision: {
-    id: 'precision',
-    name: 'Ljus precision',
-    short: 'Precision',
-    feel: 'Ljus, knivskarp yta med indigo accent – Figma-ren',
+  // 2) Precision Ljus – nära-vit, knivskarp, subtila skuggor, samma indigo accent.
+  //    Figma-ren verktygskänsla. Identisk med Mörk bortsett från ljus/mörk.
+  'precision-light': {
+    id: 'precision-light',
+    name: 'Precision Ljus',
+    short: 'Ljus',
+    feel: 'Ljus, knivskarp yta med lugn indigo accent – Figma-ren',
     base: 'light',
     vars: {
       ...SHARED,
@@ -114,42 +136,20 @@ export const DT_THEMES: Record<DtThemeId, DtTheme> = {
       blur: 'blur(14px) saturate(1.05)',
       glow: '0 0 0 rgba(0,0,0,0)',
       scrim: 'rgba(30, 34, 51, 0.28)',
-    },
-  },
-  // 3) Neon-kommandocentral – nära-svart, cyan/magenta neon med glöd. Cyberpunk
-  //    kommandocentral.
-  neon: {
-    id: 'neon',
-    name: 'Neon-kommandocentral',
-    short: 'Neon',
-    feel: 'Nära-svart med cyan neon-glöd – kommandocentral',
-    base: 'dark',
-    vars: {
-      ...SHARED,
-      surface: 'rgba(9, 12, 20, 0.86)',
-      'surface-2': 'rgba(16, 22, 36, 0.8)',
-      'surface-raised': 'rgba(14, 20, 34, 0.96)',
-      'surface-solid': '#080b13',
-      text: '#d6f5ff',
-      'text-dim': 'rgba(214, 245, 255, 0.66)',
-      'text-mute': 'rgba(214, 245, 255, 0.4)',
-      accent: '#22d3ee',
-      'accent-weak': 'rgba(34, 211, 238, 0.14)',
-      'accent-line': 'rgba(34, 211, 238, 0.4)',
-      'accent-contrast': '#04121a',
-      border: 'rgba(34, 211, 238, 0.24)',
-      'border-strong': 'rgba(34, 211, 238, 0.6)',
-      shadow: '0 6px 26px rgba(0, 0, 0, 0.6)',
-      'shadow-lg': '0 18px 60px rgba(2, 10, 20, 0.7)',
-      blur: 'blur(18px) saturate(1.4)',
-      glow: '0 0 18px rgba(34, 211, 238, 0.35)',
-      scrim: 'rgba(2, 6, 12, 0.6)',
+      // C4: varm Spara-accent (samma i båda valörerna).
+      save: SAVE,
+      'save-contrast': SAVE_CONTRAST,
+      // C3: hover-slöja (subtil mörkning på ljust) + ljushets-faktor.
+      'hover-veil': 'rgba(20, 24, 44, 0.06)',
+      'hover-bright': '0.96',
     },
   },
 }
 
-export const DT_THEME_ORDER: DtThemeId[] = ['midnight', 'precision', 'neon']
-export const DEFAULT_DT_THEME: DtThemeId = 'midnight'
+// Mörk först = default-ordning i segment-växlaren.
+export const DT_THEME_ORDER: DtThemeId[] = ['precision-dark', 'precision-light']
+// Default: Mörk (kommandocentral-känsla, men Precision-dämpad så appen är i fokus).
+export const DEFAULT_DT_THEME: DtThemeId = 'precision-dark'
 
 /**
  * Bygg inline-`style`-objektet med alla `--dt-*`-variabler för ett tema, scopat

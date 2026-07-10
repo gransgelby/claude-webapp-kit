@@ -25,7 +25,7 @@ import {
   readAppTokens, readToken, writeTokenLive, clearTokenLive, countUsage,
   loadRecentColors, pushRecentColor, type ColorProp,
 } from '@/lib/design/appTokens'
-import { dtBtn, dtGhostBtn, dtInput } from './dtStyles'
+import { dtGhostBtn, dtInput, dtSaveBtn } from './dtStyles'
 
 interface EyeDropperCtor { new (): { open(): Promise<{ sRGBHex: string }> } }
 const hasEyeDropper = () => typeof window !== 'undefined' && 'EyeDropper' in window
@@ -336,7 +336,7 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--dt-space-2)', marginTop: 2 }}>
-        <button type="button" onClick={save} disabled={saving} style={{ ...dtBtn(true), flex: 1 }}>{saving ? 'Sparar…' : 'Spara förslag'}</button>
+        <button type="button" onClick={save} disabled={saving} style={{ ...dtSaveBtn(saving), flex: 1 }}>{saving ? 'Sparar…' : 'Spara förslag'}</button>
         <button type="button" onClick={() => { revert(); onClose() }} style={dtGhostBtn()}>Avbryt</button>
       </div>
     </div>
