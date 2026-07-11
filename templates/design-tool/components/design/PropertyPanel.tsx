@@ -21,11 +21,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { saveDesignNote } from '@/lib/designToolAdapter'
 import { toHex, contrastBetween, matchToken, type WcagVerdict } from '@/lib/design/colorUtils'
+import { relevantProperties, styleFactsFromElement, type PropKey } from '@/lib/design/sliderRelevance'
 import {
   readAppTokens, readToken, writeTokenLive, clearTokenLive, countUsage,
   loadRecentColors, pushRecentColor, type ColorProp,
 } from '@/lib/design/appTokens'
-import { dtGhostBtn, dtInput, dtSaveBtn } from './dtStyles'
+import { dtGhostBtn, dtInput, dtRangeFill, dtSaveBtn } from './dtStyles'
 
 interface EyeDropperCtor { new (): { open(): Promise<{ sRGBHex: string }> } }
 const hasEyeDropper = () => typeof window !== 'undefined' && 'EyeDropper' in window
@@ -91,6 +92,9 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
   const opacityBase = useRef(1)
   const [recent, setRecent] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  // V13: vilka reglage gör en SYNLIG skillnad för DET valda elementet (generiskt
+  // härlett ur computed style, app-agnostiskt). Döda reglage döljs.
+  const [relevant, setRelevant] = useState<Set<PropKey>>(() => new Set())
 
   // ── Init vid elementbyte: läs computed, snapshotta original, bind tokens ──
   useEffect(() => {
@@ -122,6 +126,7 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
     }
     numsBase.current = nb; setNums(nb)
     opacityBase.current = parseFloat(cs.opacity || '1'); setOpacity(parseFloat(cs.opacity || '1'))
+    setRelevant(relevantProperties(styleFactsFromElement(el)))
     setRecent(loadRecentColors())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [el])
@@ -249,7 +254,12 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
     onClose()
   }
 
-  const wcag: WcagVerdict | null = contrastBetween(colors.color.hex, wcagBg.current, largeText.current)
+  const wcag: WcagVerdict | null = relevant.has('color')
+    ? contrastBetween(colors.color.hex, wcagBg.current, largeText.current)
+    : null
+  const visibleColors = COLOR_META.filter(({ key }) => relevant.has(key))
+  const visibleNums = NUM_META.filter(({ key }) => relevant.has(key))
+  const nothingRelevant = relevant.size === 0
 
   return (
     <div data-dt-property-panel style={{ display: 'flex', flexDirection: 'column', gap: 'var(--dt-space-2)' }}>
@@ -271,14 +281,21 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
           <b style={{ fontSize: 'var(--dt-text-sm)', fontVariantNumeric: 'tabular-nums', color: 'var(--dt-text)' }}>{wcag.ratio.toFixed(2)}:1</b>
           <span title={largeText.current ? 'Stor text (AA≥3, AAA≥4.5)' : 'Brödtext (AA≥4.5, AAA≥7)'} style={{
             marginLeft: 'auto', fontSize: 'var(--dt-text-xs)', fontWeight: 700, padding: '1px 7px', borderRadius: 'var(--dt-radius-pill)',
-            color: wcag.grade === 'Fail' ? '#fca5a5' : 'var(--dt-accent-contrast)',
-            background: wcag.grade === 'Fail' ? 'rgba(239,68,68,0.16)' : 'var(--dt-accent)',
+            color: wcag.grade === 'Fail' ? 'var(--dt-danger)' : 'var(--dt-accent-contrast)',
+            background: wcag.grade === 'Fail' ? 'var(--dt-danger-weak)' : 'var(--dt-accent)',
           }}>{wcag.grade === 'Fail' ? '✕ Under AA' : `✓ ${wcag.grade}`}</span>
         </div>
       )}
 
-      {/* Färgfält (token-vs-override) */}
-      {COLOR_META.map(({ key, label }) => {
+      {/* V13: ärlig förklaring när elementet är osynligt/tomt (inga meningsfulla reglage) */}
+      {nothingRelevant && (
+        <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-mute)', margin: '2px 0', lineHeight: 1.5 }}>
+          Det här elementet har inga synliga egenskaper att justera – det är en osynlig behållare. Välj ett element med egen bakgrund, ram eller text.
+        </p>
+      )}
+
+      {/* Färgfält (token-vs-override) – bara de som gör synlig skillnad (V13) */}
+      {visibleColors.map(({ key, label }) => {
         const f = colors[key]
         return (
           <div key={key} style={{ borderBottom: '1px solid var(--dt-border)', paddingBottom: 6 }}>
@@ -321,19 +338,21 @@ export default function PropertyPanel({ el, selInfo, flash, onClose, compact }: 
         )
       })}
 
-      {/* Numeriska reglage: ram/radie/spacing/textstorlek */}
-      {NUM_META.map(({ key, label, min, max, step, unit }) => (
+      {/* Numeriska reglage: ram/radie/spacing/textstorlek – filtrerade (V13) */}
+      {visibleNums.map(({ key, label, min, max, step, unit }) => (
         <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <label style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', minWidth: 90 }}>{label}</label>
-          <input type="range" min={min} max={max} step={step} value={nums[key]} onChange={(e) => setNum(key, parseFloat(e.target.value))} style={{ flex: 1, accentColor: 'var(--dt-accent)' }} />
+          <input type="range" min={min} max={max} step={step} value={nums[key]} onChange={(e) => setNum(key, parseFloat(e.target.value))} style={{ flex: 1, ...dtRangeFill(nums[key], min, max) }} />
           <span style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text)', minWidth: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{nums[key]}{unit}</span>
         </div>
       ))}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <label style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', minWidth: 90 }}>Opacitet</label>
-        <input type="range" min={0} max={1} step={0.05} value={opacity} onChange={(e) => setOpacityLive(parseFloat(e.target.value))} style={{ flex: 1, accentColor: 'var(--dt-accent)' }} />
-        <span style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text)', minWidth: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round(opacity * 100)}%</span>
-      </div>
+      {relevant.has('opacity') && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', minWidth: 90 }}>Opacitet</label>
+          <input type="range" min={0} max={1} step={0.05} value={opacity} onChange={(e) => setOpacityLive(parseFloat(e.target.value))} style={{ flex: 1, ...dtRangeFill(opacity, 0, 1) }} />
+          <span style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text)', minWidth: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{Math.round(opacity * 100)}%</span>
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 'var(--dt-space-2)', marginTop: 2 }}>
         <button type="button" onClick={save} disabled={saving} style={{ ...dtSaveBtn(saving), flex: 1 }}>{saving ? 'Sparar…' : 'Spara förslag'}</button>

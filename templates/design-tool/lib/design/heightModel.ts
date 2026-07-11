@@ -57,6 +57,18 @@ export function clampDragH(h: number, min = MIN_DRAG_HPX): number {
   return Math.max(min, h)
 }
 
+/**
+ * R9: en dragen höjd är en OVERRIDE (explicit inline-höjd på det riktiga elementet)
+ * när den skiljer sig från init-höjden mer än tolerans. Gäller BÅDE auto-regioner
+ * (som därmed får en explicit höjd i stället för sin innehållsstyrda) och fasta (som
+ * ändrar sin redan explicita höjd). Sub-pixel-brus under tolerans ⇒ INGEN override,
+ * dvs auto förblir auto (init-höjden/live-ommätningen gäller). Ren predikat-kärna
+ * som både DOM-appliceringen och wireframe-höjden delar → en sanning.
+ */
+export function isHeightOverride(currentPx: number, initPx: number, tolPx = 0.5): boolean {
+  return Math.abs(currentPx - initPx) > tolPx
+}
+
 /** En snap-kandidat: en granne-regions underkant (samma koordinatrum som selfTop). */
 export interface SnapCandidate { id: string; label: string; bottom: number }
 

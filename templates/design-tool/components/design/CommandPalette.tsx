@@ -81,7 +81,7 @@ export default function CommandPalette({
           width: 'min(560px, 92vw)', maxHeight: '64vh', display: 'flex', flexDirection: 'column',
           background: 'var(--dt-surface-raised)', backdropFilter: 'var(--dt-blur)',
           border: '1px solid var(--dt-border-strong)', borderRadius: 'var(--dt-radius-lg)',
-          boxShadow: 'var(--dt-shadow-lg), var(--dt-glow)', overflow: 'hidden',
+          boxShadow: 'var(--dt-panel-shadow), var(--dt-glow)', overflow: 'hidden',
           animation: 'dtPop var(--dt-dur) var(--dt-spring-bounce)',
         }}
       >

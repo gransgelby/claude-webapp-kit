@@ -65,6 +65,12 @@ export interface RegionNode {
   /** Ankarets riktiga layout-förälder (scope-containern som styr mekaniken). */
   scopeRef: number
   kind: 'visual' | 'slot' | 'locked'
+  /** W6 (v2.4): syns lådan som en EGEN ruta på riktiga sidan (egen bakgrund/box-ram/
+   *  skugga), eller är den en osynlig STRUKTUR-container (transparent grupperande
+   *  wrapper / slot-yta)? false ⇒ wireframen markerar den som "ej på sidan". Beräknas
+   *  ur samma isVisuallySeparated-signal som regionsdetektionen (ärvd bakgrund vägs in).
+   *  En merge-region ärver true om dess innersta kort är separerat. */
+  separated: boolean
   rect: Rect
   depth: number
   children: RegionNode[]
@@ -110,6 +116,24 @@ const SEMANTIC_ROLES = new Set([
 const INTERACTIVE_TAGS = new Set([
   'button', 'a', 'input', 'select', 'textarea', 'label', 'summary', 'option',
 ])
+// TEXT-/FRAS-taggar: bär innehåll, inte layout. En sådan är ALDRIG en egen
+// (nästlad) region – även om den råkar ha en svag tonad bakgrund (t.ex. en
+// callout-<p> med bg-slate-400/10) eller är stor nog att verka "substantiell".
+// De representeras i stället som platshållare (R14), aldrig som drag-/resize-
+// bara lådor. Generiskt (tag-baserat), inte sid-specifikt. Behållar-taggar
+// (div/section/article/ul/ol/li/figure/table …) hålls UTANFÖR → de kan vara
+// regioner som förut. `a`/`button` styrs redan av interaktiv-heuristiken (stora
+// länk-kort tillåts) → hålls också utanför.
+const NON_REGION_TAGS = new Set([
+  'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'span', 'strong', 'em', 'b', 'i',
+  'small', 'code', 'kbd', 'samp', 'blockquote', 'figcaption', 'caption', 'label',
+  'dt', 'dd', 'time', 'abbr', 'cite', 'q', 'mark', 'sub', 'sup', 'del', 'ins', 'u', 's',
+])
+
+/** Kan taggen alls bära en egen region (behållare), eller är den ren text/fras? */
+export function canBeRegionTag(tag: string): boolean {
+  return !NON_REGION_TAGS.has(tag)
+}
 
 // ── Rena predikat ────────────────────────────────────────────────────────────
 
@@ -137,8 +161,12 @@ export function isVisuallySeparated(n: VisualNode, inheritedBg: string | null): 
   return false
 }
 
-/** Kandidat till region: substantiell OCH (visuellt separerad ELLER semantisk). */
+/** Kandidat till region: en BEHÅLLARE (ej ren text/fras) som är substantiell OCH
+ *  (visuellt separerad ELLER semantisk). Text-/fras-taggar refuseras generiskt
+ *  (de blir platshållare, aldrig egna lådor) – annars över-detekteras t.ex. en
+ *  tonad callout-<p> som en falsk nästlad region (R7). */
 export function isRegionCandidate(n: VisualNode, inheritedBg: string | null, o: RegionOpts = DEFAULT_REGION_OPTS): boolean {
+  if (!canBeRegionTag(n.tag)) return false
   if (!isSubstantial(n, o)) return false
   return isVisuallySeparated(n, inheritedBg) || n.semantic
 }
@@ -244,7 +272,8 @@ function findUnits(
           for (const c of subs) {
             const isCand = cands.some((k) => k.node === c)
             const holdsCand = cands.some((k) => k.path.includes(c))
-            if (!isCand && !holdsCand && c.rect.w >= o.minSlotWFrac * cur.rect.w) {
+            // Text-/fras-taggar blir aldrig slots (platshållare, inte lådor) – R7.
+            if (!isCand && !holdsCand && canBeRegionTag(c.tag) && c.rect.w >= o.minSlotWFrac * cur.rect.w) {
               slots.push({ node: c, kind: 'slot', path: [...curPath, c] })
             }
           }
@@ -281,6 +310,10 @@ function anchorAndScope(u: Unit, all: Unit[], searchRoot: VisualNode): { anchor:
 function toRegion(u: Unit, all: Unit[], searchRoot: VisualNode, inheritedBg: string | null, depth: number, o: RegionOpts): RegionNode {
   const { anchor, scope } = anchorAndScope(u, all, searchRoot)
   let innerRef = u.node.ref
+  // W6: syns lådan som en egen ruta på riktiga sidan? Locked band (sticky/toppbar) är
+  // alltid synliga; annars vägs isVisuallySeparated (egen bakgrund vs ärvd / box-ram /
+  // skugga). En merge-region ärver true om det innersta kortet är separerat.
+  let separated = u.kind === 'locked' || isVisuallySeparated(u.node, inheritedBg)
   let children: RegionNode[] = []
   if (u.kind !== 'locked' && depth < o.maxDepth) {
     children = regionChildren(u.node, u.node.bgColor ?? inheritedBg, false, u.kind !== 'slot', depth + 1, o)
@@ -293,6 +326,7 @@ function toRegion(u: Unit, all: Unit[], searchRoot: VisualNode, inheritedBg: str
     ) {
       innerRef = children[0].innerRef
       const merged = children[0]
+      separated = separated || merged.separated // det synliga kortet bär separationen
       children = merged.children
       inner = { ...inner, rect: merged.rect } // fortsätt täcknings-jämförelsen inåt
     }
@@ -303,6 +337,7 @@ function toRegion(u: Unit, all: Unit[], searchRoot: VisualNode, inheritedBg: str
     anchorRef: anchor.ref,
     scopeRef: scope.ref,
     kind: u.kind,
+    separated,
     rect: u.node.rect,
     depth,
     children,
@@ -326,6 +361,7 @@ export function buildRegionTree(root: VisualNode, opts: Partial<RegionOpts> = {}
     anchorRef: root.ref,
     scopeRef: root.ref,
     kind: 'visual',
+    separated: true, // roten = sidan själv (alltid "synlig")
     rect: root.rect,
     depth: 0,
     children: regionChildren(root, root.bgColor, true, true, 1, o),

@@ -31,8 +31,13 @@ lib/design/mediaEmu.ts      v2: @media-omskrivning för äkta mobil-spegel (test
 lib/design/reflowModel.ts   v2: flytta = reflow/infoga, aldrig ovanpå (testad)   ← app-agnostisk
 lib/design/viewSync.ts      v2: synk pan/zoom + split + MacBook-rekt (testad)    ← app-agnostisk
 lib/design/savePayload.ts   v2: osparat-signatur + utökad layout-payload (testad) ← app-agnostisk
+lib/design/cssTweaks.ts     v2.4: kontextuell CSS-redigering (innesluten-i-ruta, spridning) ← app-agnostisk
+lib/design/workspacePersistence.ts v2.4: minns arbetsytan + "Byt sida" utan tapp (testad) ← app-agnostisk
+lib/design/{intentModel,reflowModel,projection,placeholderModel,hoverToolbar,motion,sliderRelevance,toastModel,unsavedGuard}.ts
+                            v2.x: rena stödmoduler (fri-flytt, reflow, projektion, m.m., testade) ← app-agnostiska
 components/DesignTool.tsx    tunn monterings-komponent: admin-gate + lazy-load
-components/design/*          shell, Design mode, egenskaps-panel, inspector, palett
+components/design/CssThemeEditor.tsx  v2.4: CSS-flikens editor (grupperade avsnitt + spridning)
+components/design/*          shell, Design mode, egenskaps-panel, inspector, palett, segmented
 scripts/check-grid.mjs       grid-lint (parametriserbar sidlista)                ← app-agnostisk
 *.test.ts                    Vitest-enhetstester för den rena logiken
 ```
@@ -58,6 +63,27 @@ app-kunskap):
 - **Temapar Precision** (`dtTheme`) — exakt två valörer (ljus/mörk) av samma lugna tema,
   WCAG-AA-verifierat, med en varm `--dt-save`-accent för Spara-handlingar.
 
+## v2.1 → v2.4 — vad som tillkom
+
+Ovanpå v2-skalmodellen (fortfarande drivet av rena, app-agnostiska moduler):
+
+- **CSS-flik med kontextuell dra-ruta** (`cssTweaks`, `CssThemeEditor`) — rita en ruta och
+  redigera CSS för **bara de element som är helt inneslutna** i den; ändringarna grupperas i
+  CSS-avsnitt med en **spridningsräkning** ("används på N ställen") så man ser räckvidden innan
+  man sparar.
+- **Live grid-flytt som slår igenom** — flytta ett kort på rutnätet och sidan följer direkt
+  (ingen separat "applicera"), scopat per sida i localStorage.
+- **Tydligare wireframe-lådor** — centrerade låd-namn (`regionNames`) + en **"struktur"-badge**
+  på rena struktur-behållare, så hierarkin läses snabbare.
+- **Renoverad verktygsflik + Kommentarer-kort** — verktygsytan är en responsiv kort-tavla
+  (kontrollerna sträcks inte ut över hela den breda panelen), och ett **Kommentarer-kort** knyter
+  fri text till valt element / ritad ruta / hela sidan via samma design-note-pipeline.
+- **Uppdaterat temapar + 3-rolls knappfärgspråk** (`dtTheme`, `dtStyles`) — knappar talar
+  **positiv / neutral / varning**; **Spara** är grön med en liten prick när det finns osparat.
+- **"Byt sida"-navigering** (`workspacePersistence`, söm `NAV_PAGES`) — hoppa till en annan sida
+  utan att tappa osparat utkast (utkastet sparas per sida, verktyget återöppnas på nästa sida).
+  Sidlistan är en dokumenterad söm i adaptern.
+
 ## Färdigskeppat vs vad du kopplar själv
 
 | Färdigskeppat (funkar direkt) | Du kopplar själv |
@@ -70,8 +96,10 @@ app-kunskap):
 | Live token-läsning/-skrivning för prefix `--c-` | Sätt ditt eget `tokenPrefix` i `dtConfig` om det avviker |
 | Element→fil:rad, align/distribute, colorUtils (allt testat) | — |
 
-**Skeppas INTE:** ingen backend-kod (app-projektet `design_notes.py`/`pull-design-notes`).
-Persistens är ett rent interface du fyller i adaptern.
+**Skeppas INTE:** ingen backend-kod (app-projektet `design_notes.py`/`pull-design-notes`);
+inte den app-specifika **`/admin/oversikt`**-sidan (läser appens `Backlog.md` + design-notes-API
+— en app-feature, inte en återanvändbar verktygsprimitiv); inte **`RouteDesignInline`** (en
+app-specifik rutt-/kart-designpanel). Persistens är ett rent interface du fyller i adaptern.
 
 ## Kom igång (4 steg)
 
@@ -104,6 +132,8 @@ tool-koden. Öppning: den inbyggda launchern, `?designtool=open` (dev), eller
 - **`getAuthStatus()`:** returnera `{ tier: 'admin' }` för de som får redigera.
 - **`saveDesignNote/listDesignNotes/deleteDesignNote`:** default är localStorage — byt mot
   POST/GET/DELETE mot din backend. `DesignNote`-formen är stabil, rör den inte.
+- **`NAV_PAGES`** (valfritt): sidlistan i Design modes "Byt sida"-popover. Default är en generisk
+  `[Hem, Dashboard]` — peka om mot din apps sidor.
 
 **4. Kör grid-linten** på dina griddade sidor (lägg i `package.json`-scripts):
 ```jsonc

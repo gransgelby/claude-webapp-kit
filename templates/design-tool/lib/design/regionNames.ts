@@ -1,8 +1,8 @@
 // Vettiga regionsnamn (Design mode v2 · A3).
 //
 // Wireframen är en GENERELL designvy – regionsnamn ska beskriva strukturen
-// ("Sammanfattning", "Karta", "Foto"), aldrig instansdata ("7.7/10", "1/3",
-// "Acme AB"). Namnet härleds generiskt ur innehållet, i prioritets-
+// ("Lämplighetsanalys", "Karta", "Foto"), aldrig instansdata ("7.7/10", "1/3",
+// "Hudiksvall kommun"). Namnet härleds generiskt ur innehållet, i prioritets-
 // ordning:
 //
 //   1. aria-label / aria-labelledby (elementets egna)
@@ -18,9 +18,9 @@
 //   9. uppringarens fallback ("Område N")
 //
 // INSTANSDATA-STRIPPNING är heuristisk, aldrig hårdkodade strängar: tokens med
-// siffror kapas i namnets början/slut ("Omsättning 2023" → "Omsättning",
-// "Produktfoto 1 av 3" → "Produktfoto"), och kandidater som är rena tal/
-// enheter/betyg ("7.7/10", "42 kr/st", "S") refuseras helt.
+// siffror kapas i namnets början/slut ("Medianinkomst 2023" → "Medianinkomst",
+// "Fastighetsfoto 1 av 3" → "Fastighetsfoto"), och kandidater som är rena tal/
+// enheter/betyg ("7.7/10", "865kWh/m²", "S") refuseras helt.
 //
 // Arkitektur som regionModel.ts: REN kärna överst (plain data, node-testbar),
 // DOM-läsning isolerad längst ned.
@@ -116,18 +116,31 @@ function truncAtWord(s: string, max: number): string {
 // ── Namnval ur kandidater (ren) ──────────────────────────────────────────────
 
 const KIND_ORDER: CandidateKind[] = ['aria', 'heading', 'caption', 'label', 'alt']
+// SLOT-ordning (A3 · R8a): en SLOT är en yta UTAN egen visuell identitet (t.ex.
+// hero-blockets vänsterkolumn med adress/pris/fält). Att skrapa dess första
+// font-semibold-etikett ("Gård") eller sidtiteln (h1 → "Sidrubrik") ger ett
+// missvisande namn – slotten är HELA innehållskolumnen, inte dess första chip.
+// Därför: bara aria + äkta under-rubrik (h2–h6) räknas; annars roll ur innehåll
+// (slotRoleName → "Faktaspalt"/"Bildspel"/…).
+const SLOT_KIND_ORDER: CandidateKind[] = ['aria', 'heading', 'caption']
+
+export interface NameOpts { slot?: boolean }
 
 /**
  * Välj namn ur kandidaterna i prioritetsordning (aria → rubrik → caption →
  * etikett → alt); inom varje sort gäller given ordning (= dokumentordning).
- * h1 ⇒ PAGE_TITLE_NAME. Kandidater vars text är instansdata hoppas över –
- * så stat-rutans "994" faller igenom till etikettraden "Befolkning".
+ * h1 ⇒ PAGE_TITLE_NAME (men för en SLOT hoppas h1 över – slotten är kolumnen,
+ * inte titeln). Kandidater vars text är instansdata hoppas över – så stat-rutans
+ * "994" faller igenom till etikettraden "Befolkning".
  */
-export function pickName(cands: NameCandidate[]): string | null {
-  for (const kind of KIND_ORDER) {
+export function pickName(cands: NameCandidate[], opts: NameOpts = {}): string | null {
+  for (const kind of (opts.slot ? SLOT_KIND_ORDER : KIND_ORDER)) {
     for (const c of cands) {
       if (c.kind !== kind) continue
-      if (c.kind === 'heading' && c.level === 1) return PAGE_TITLE_NAME
+      if (c.kind === 'heading' && c.level === 1) {
+        if (opts.slot) continue // slot som bär sidtiteln = innehållskolumn, ej "titeln"
+        return PAGE_TITLE_NAME
+      }
       const name = cleanName(c.own) || cleanName(c.full)
       if (name) return name
     }
@@ -165,6 +178,21 @@ export function typeName(f: ContentFacts): string | null {
   return null
 }
 
+/** Roll-namn för en SLOT ur dess innehåll (A3 · R8a): bild-dominerad kolumn =
+ *  "Bildspel", karta = "Karta", … och en text-/fält-tung kolumn utan egen rubrik
+ *  = "Faktaspalt". Generiskt ur innehåll/roll (aldrig instansdata). */
+export function slotRoleName(f: ContentFacts): string | null {
+  if (f.mapLike) return 'Karta'
+  if (f.imgFrac >= 0.3) return 'Bildspel'
+  if (f.svgFrac >= 0.35) return 'Diagram'
+  if (f.canvasFrac >= 0.35) return 'Grafik'
+  if (f.table) return 'Tabell'
+  if (f.form) return 'Formulär'
+  if (f.list) return 'Lista'
+  if (letterCount(f.bodyText) >= 12) return 'Faktaspalt'
+  return null
+}
+
 /** Kort begriplig text-snutt (ordgräns) ur brödtext – eller null. */
 export function snippetName(bodyText: string, max = 24): string | null {
   const t = bodyText.replace(/\s+/g, ' ').trim()
@@ -173,14 +201,26 @@ export function snippetName(bodyText: string, max = 24): string | null {
   return letterCount(s) >= 3 ? s : null
 }
 
-/** Hela kedjan (ren): kandidater → landmark → typ → snutt → fallback. */
+/** Hela kedjan (ren): kandidater → landmark → typ/roll → snutt → fallback.
+ *  För en SLOT (opts.slot) används slot-kedjan: rubrik-/etikett-skrap hoppas
+ *  över till förmån för roll ur innehållet (Faktaspalt/Bildspel/…) – R8a. */
 export function regionName(
   cands: NameCandidate[],
   tag: string,
   role: string | null,
   facts: ContentFacts,
   fallback: string,
+  opts: NameOpts = {},
 ): string {
+  if (opts.slot) {
+    return (
+      pickName(cands, opts)
+      ?? landmarkName(tag, role)
+      ?? slotRoleName(facts)
+      ?? snippetName(facts.bodyText)
+      ?? fallback
+    )
+  }
   return (
     pickName(cands)
     ?? landmarkName(tag, role)
@@ -297,13 +337,14 @@ export function collectFacts(root: Element): ContentFacts {
   }
 }
 
-/** Bekvämlighet: namnge ett riktigt element i ett svep. */
-export function nameForElement(el: Element, fallback: string): string {
+/** Bekvämlighet: namnge ett riktigt element i ett svep. `opts.slot` → slot-kedjan. */
+export function nameForElement(el: Element, fallback: string, opts: NameOpts = {}): string {
   return regionName(
     collectCandidates(el),
     el.tagName.toLowerCase(),
     el.getAttribute('role'),
     collectFacts(el),
     fallback,
+    opts,
   )
 }

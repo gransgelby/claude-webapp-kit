@@ -1,7 +1,7 @@
 // Enhetstester för heightModel (Design mode v2 · A2 – skalenliga höjder + snap).
 import { describe, it, expect } from 'vitest'
 import {
-  probeIsFixed, wfScale, snapHeight, clampDragH, stackRows, heightsEqual,
+  probeIsFixed, wfScale, snapHeight, clampDragH, stackRows, heightsEqual, isHeightOverride,
   MIN_DRAG_HPX, type HeightProbe, type StackChild,
 } from './heightModel'
 
@@ -44,6 +44,45 @@ describe('clampDragH', () => {
   it('klampar mot minsta drag-höjd', () => {
     expect(clampDragH(3)).toBe(MIN_DRAG_HPX)
     expect(clampDragH(300)).toBe(300)
+  })
+})
+
+describe('isHeightOverride (R9 – auto-region får dragen override-höjd)', () => {
+  it('oförändrad höjd (auto) ⇒ ingen override → förblir auto', () => {
+    // En auto-region vid init (hpx === origH) ska INTE ge en explicit höjd.
+    expect(isHeightOverride(410, 410)).toBe(false)
+  })
+  it('sub-pixel-brus under tolerans ⇒ ingen override', () => {
+    expect(isHeightOverride(410.3, 410)).toBe(false)
+  })
+  it('dragen högre (auto → explicit override) ⇒ override', () => {
+    // Avstånd & komm. dras från 410 → 520 (ner till grannens botten): override.
+    expect(isHeightOverride(520, 410)).toBe(true)
+  })
+  it('dragen lägre ⇒ override', () => {
+    expect(isHeightOverride(300, 410)).toBe(true)
+  })
+  it('fast höjd som ändras räknas också som override', () => {
+    expect(isHeightOverride(324, 300)).toBe(true)
+  })
+  it('anpassad tolerans respekteras', () => {
+    expect(isHeightOverride(412, 410, 3)).toBe(false)
+    expect(isHeightOverride(415, 410, 3)).toBe(true)
+  })
+})
+
+describe('probeIsFixed driver "fast höjd"-märkningen (R10)', () => {
+  // Märkningen (fast höjd-chip vs auto-chip) styrs av exakt samma generiska
+  // sondering som A2 – en fast ruta (explicit höjd/aspect/CSS-satt höjd) ska
+  // flaggas så att den kan uppmärksammas; en innehållsstyrd ruta ska inte.
+  it('explicit inline-höjd ⇒ märks "fast höjd"', () => {
+    expect(probeIsFixed(probe({ inlineHeight: '324px' }))).toBe(true)
+  })
+  it('aspect-ratio (t.ex. kartytan) ⇒ märks "fast höjd"', () => {
+    expect(probeIsFixed(probe({ cssAspectRatio: '4 / 3' }))).toBe(true)
+  })
+  it('innehållsstyrd ruta ⇒ märks INTE som fast (auto)', () => {
+    expect(probeIsFixed(probe({ measuredH: 410, autoH: 410 }))).toBe(false)
   })
 })
 

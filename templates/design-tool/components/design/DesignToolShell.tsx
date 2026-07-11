@@ -23,8 +23,9 @@ import PropertyPanel from './PropertyPanel'
 import ElementInspector from './ElementInspector'
 import { nearestMeaningfulElement } from '@/lib/design/elementModel'
 import { dtBtn, dtGhostBtn, dtInput, dtSaveBtn } from './dtStyles'
+import { DtSegmented } from './DtSegmented'
 
-type Mode = 'idle' | 'pick' | 'draw' | 'notes' | 'gcomment'
+type Mode = 'idle' | 'pick' | 'draw' | 'comment'
 type Rect = { x: number; y: number; w: number; h: number }
 
 function describe(el: Element): { design_id?: string; selector: string; label: string } {
@@ -102,6 +103,37 @@ const KEYFRAMES = `
   filter: brightness(var(--dt-hover-bright));
 }
 .dt-root input[type="range"]:hover { filter: brightness(var(--dt-hover-bright)); }
+
+/* B5 · Glidande kontroller – sliders med ACCENT-FYLLD aktiv del (fyllt spår till
+   vänster om thumben). Fyllnadsgraden sätts inline per slider via --dt-range-fill
+   (dtRangeFill i dtStyles). Fyllnaden animeras INTE (thumben rör sig direkt → spåret
+   följer omedelbart, "alltid snabbt"). Fullt egen-stylad appearance → identisk fyllning
+   i Chrome/Safari/Firefox oavsett browserns egen accent-color-rendering. */
+.dt-root input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: var(--dt-radius-pill);
+  background-color: var(--dt-track-empty);
+  background-image: linear-gradient(var(--dt-accent), var(--dt-accent));
+  background-repeat: no-repeat;
+  background-size: var(--dt-range-fill, 0%) 100%;
+  cursor: pointer;
+}
+.dt-root input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--dt-accent); border: 2px solid var(--dt-surface-solid);
+  box-shadow: var(--dt-shadow); margin-top: -5px;
+}
+.dt-root input[type="range"]::-moz-range-thumb {
+  width: 14px; height: 14px; border: 2px solid var(--dt-surface-solid);
+  border-radius: 50%; background: var(--dt-accent); box-shadow: var(--dt-shadow);
+}
+.dt-root input[type="range"]::-moz-range-progress {
+  height: 4px; border-radius: var(--dt-radius-pill); background: var(--dt-accent);
+}
+.dt-root input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: var(--dt-radius-pill); background: var(--dt-track-empty);
+}
 .dt-root button:not(:disabled):active,
 .dt-root [data-dt-hoverable]:not([data-disabled="true"]):active {
   transform: translateY(0.5px);
@@ -112,6 +144,11 @@ const KEYFRAMES = `
   background: var(--dt-accent) !important;
   width: 3px !important;
 }
+/* R6: verktygsradens Layout-band scrollar horisontellt (trackpad/wheel/shift-scroll)
+   utan synlig scrollbar → höjden hålls fast (40px) så wireframe-canvasen linjeras kvar
+   och de pinnade reset-knapparna (Nollställ) alltid ryms längst till höger. */
+.dt-root .dt-toolscroll { scrollbar-width: none; -ms-overflow-style: none; }
+.dt-root .dt-toolscroll::-webkit-scrollbar { height: 0; width: 0; display: none; }
 `
 
 export default function DesignToolShell({
@@ -139,6 +176,7 @@ export default function DesignToolShell({
   const [comment, setComment] = useState('')
   const [genComment, setGenComment] = useState('')
   const [notes, setNotes] = useState<DesignNote[]>([])
+  const [showPrev, setShowPrev] = useState(false) // "Kommentera sidan": toggla listan med tidigare
   const [anchor, setAnchor] = useState<DesignAnchor | null>(initialAnchor)
   const [pos, setPos] = useState(state.pos)
   const dragRef = useRef<{ x: number; y: number; dx: number; dy: number } | null>(null)
@@ -158,8 +196,8 @@ export default function DesignToolShell({
       const d = (e as CustomEvent).detail as DesignAnchor | null | undefined
       setOpen((v) => { const next = !v; if (next) { setAnchor(d ?? null) } return next })
     }
-    window.addEventListener('dt:toggle-design-tool', toggle)
-    return () => window.removeEventListener('dt:toggle-design-tool', toggle)
+    window.addEventListener('fa:toggle-design-tool', toggle)
+    return () => window.removeEventListener('fa:toggle-design-tool', toggle)
   }, [])
 
   // ⌘K – kommandopalett. Fungerar även när panelen är stängd (öppnar då verktyget).
@@ -286,7 +324,8 @@ export default function DesignToolShell({
     if (!genComment.trim()) return
     const res = await saveDesignNote({ kind: 'comment', comment: genComment.trim(), ...captureContext() })
     flash(res.ok ? 'Kommentar sparad' : 'Kunde inte spara')
-    setGenComment(''); setMode('idle')
+    // Stanna kvar i "Kommentera sidan" – töm fältet och uppdatera listan om den visas.
+    if (res.ok) { setGenComment(''); if (showPrev) setNotes(await listDesignNotes()) }
   }
 
   // Flytta panelen (dra i rubriken) → persistera offset.
@@ -306,7 +345,13 @@ export default function DesignToolShell({
   // Persistera offset när dragget landat (pos hunnit uppdateras).
   useEffect(() => { if (!dragRef.current) patch({ pos }) }, [pos]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openNotes = useCallback(async () => { setMode('notes'); setNotes(await listDesignNotes()) }, [])
+  // "Kommentera sidan": öppna kommentar-läget (skriv ny), resp. toggla listan med tidigare.
+  const openComment = useCallback(() => { setOpen(true); exitMode(); setMode('comment'); setShowPrev(false) }, [exitMode])
+  const togglePrev = async () => {
+    const next = !showPrev
+    setShowPrev(next)
+    if (next) setNotes(await listDesignNotes())
+  }
   const removeNote = async (id: string) => { if (await deleteDesignNote(id)) setNotes((n) => n.filter((x) => x.id !== id)) }
 
   const setTheme = useCallback((id: typeof state.theme) => { patch({ theme: id }); flash(`Chrome: ${DT_THEMES[id].name}`) }, [patch, flash])
@@ -315,10 +360,7 @@ export default function DesignToolShell({
   const commands: Command[] = [
     { id: 'pick', section: 'Verktyg', glyph: '⌖', title: 'Välj element', hint: 'shift = förälder', keywords: 'plock element style redigera', run: () => { setOpen(true); revertLive(); setMode('pick') } },
     { id: 'draw', section: 'Verktyg', glyph: '▭', title: 'Rita ruta', keywords: 'kommentar region', run: () => { setOpen(true); setDraw(null); setMode('draw') } },
-    { id: 'gcomment', section: 'Verktyg', glyph: '✎', title: 'Fri kommentar', keywords: 'feedback text', run: () => { setOpen(true); exitMode(); setMode('gcomment') } },
-    { id: 'notes', section: 'Verktyg', glyph: '☰', title: 'Anteckningar', keywords: 'lista sparade notes', run: () => { setOpen(true); void openNotes() } },
-    // App-specifika kommandon: lägg till egna Command-objekt här (t.ex. dispatcha
-    // ett eget window-event). App-specifika verktygskommandon portas inte hit.
+    { id: 'comment', section: 'Verktyg', glyph: '✎', title: 'Kommentera sidan', keywords: 'kommentar feedback anteckning tidigare notes', run: () => openComment() },
     { id: 'designmode', section: 'Läge', glyph: '▦', title: 'Öppna Design mode', hint: 'helskärm', keywords: 'canvas wireframe två-panel', run: () => { patch({ lastMode: 'design' }); setDesignMode(true) } },
     { id: 'close', section: 'Läge', glyph: '✕', title: 'Stäng verktyget', keywords: 'göm', run: () => { exitMode(); setOpen(false) } },
     ...DT_THEME_ORDER.map((id): Command => ({
@@ -365,7 +407,7 @@ export default function DesignToolShell({
               position: 'fixed', ...panelPos, width: PANEL_W, color: 'var(--dt-text)',
               background: 'var(--dt-surface)', backdropFilter: 'var(--dt-blur)',
               border: '1px solid var(--dt-border-strong)', borderRadius: 'var(--dt-radius-lg)',
-              boxShadow: 'var(--dt-shadow-lg), var(--dt-glow)', padding: 'var(--dt-space-3)',
+              boxShadow: 'var(--dt-panel-shadow), var(--dt-glow)', padding: 'var(--dt-space-3)',
               pointerEvents: 'auto', overflowY: 'auto',
               transform: `translate(${pos.dx}px, ${pos.dy}px)`,
               animation: 'dtPop var(--dt-dur) var(--dt-spring)',
@@ -389,41 +431,52 @@ export default function DesignToolShell({
               <button type="button" onClick={() => { patch({ lastMode: 'design' }); setDesignMode(true) }} style={dtBtn()}>▦ Design mode</button>
             </div>
 
-            {/* Chrome-väljare (2–3 riktningar) */}
-            <div style={{ display: 'flex', gap: 4, marginBottom: 'var(--dt-space-3)', padding: 3, background: 'var(--dt-surface-2)', borderRadius: 'var(--dt-radius)', border: '1px solid var(--dt-border)' }}>
-              {DT_THEME_ORDER.map((id) => (
-                <button key={id} type="button" title={DT_THEMES[id].feel} onClick={() => setTheme(id)}
-                  style={{
-                    flex: 1, padding: '5px 4px', fontSize: 'var(--dt-text-xs)', fontWeight: 600, cursor: 'pointer',
-                    borderRadius: 'var(--dt-radius-sm)', border: '1px solid ' + (state.theme === id ? 'var(--dt-border-strong)' : 'transparent'),
-                    background: state.theme === id ? 'var(--dt-accent-weak)' : 'transparent',
-                    color: state.theme === id ? 'var(--dt-accent)' : 'var(--dt-text-dim)',
-                    transition: 'background var(--dt-dur-fast) var(--dt-spring)',
-                  }}>
-                  {DT_THEMES[id].short}
-                </button>
-              ))}
+            {/* Chrome-väljare (Precision-valörerna) – glidande segment (B5). */}
+            <div style={{ marginBottom: 'var(--dt-space-3)' }}>
+              <DtSegmented
+                ariaLabel="Verktygstema"
+                value={state.theme}
+                onChange={(v) => setTheme(v as import('@/lib/design/dtTheme').DtThemeId)}
+                options={DT_THEME_ORDER.map((id) => ({ value: id, label: DT_THEMES[id].short, title: DT_THEMES[id].feel }))}
+              />
             </div>
 
             {/* Verktygsknappar */}
             <div style={{ display: 'flex', gap: 'var(--dt-space-2)', flexWrap: 'wrap' }}>
               <button type="button" onClick={() => (mode === 'pick' ? exitMode() : (revertLive(), setMode('pick')))} style={dtGhostBtn(mode === 'pick')}>Välj element</button>
               <button type="button" onClick={() => (mode === 'draw' ? exitMode() : (setDraw(null), setMode('draw')))} style={dtGhostBtn(mode === 'draw')}>Rita ruta</button>
-              <button type="button" onClick={() => (mode === 'gcomment' ? setMode('idle') : (exitMode(), setMode('gcomment')))} style={dtGhostBtn(mode === 'gcomment')}>Kommentar</button>
-              <button type="button" onClick={() => (mode === 'notes' ? setMode('idle') : openNotes())} style={dtGhostBtn(mode === 'notes')}>Anteckningar</button>
+              <button type="button" onClick={() => (mode === 'comment' ? setMode('idle') : openComment())} style={dtGhostBtn(mode === 'comment')}>Kommentera sidan</button>
             </div>
 
             {mode === 'pick' && <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', margin: '8px 2px 0', lineHeight: 1.5 }}>Klicka på ett element för att justera dess värden. <b>Shift-klick</b> = föräldra-elementet. Dra rubriken för att flytta panelen.</p>}
             {mode === 'draw' && <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', margin: '8px 2px 0' }}>Dra för att rita en ruta över det du vill kommentera.</p>}
 
-            {mode === 'gcomment' && (
+            {mode === 'comment' && (
               <div style={{ marginTop: 'var(--dt-space-3)', borderTop: '1px solid var(--dt-border)', paddingTop: 'var(--dt-space-2)' }}>
-                <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', margin: '0 0 6px' }}>Fri kommentar om den här sidan (ej kopplad till ett element).</p>
-                <textarea value={genComment} onChange={(e) => setGenComment(e.target.value)} placeholder="Generell feedback om sidan…" rows={3} style={dtInput()} />
+                <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', margin: '0 0 6px' }}>Skriv en kommentar om den här sidan.</p>
+                <textarea value={genComment} onChange={(e) => setGenComment(e.target.value)} placeholder="Din kommentar om sidan…" rows={3} style={dtInput()} />
                 <div style={{ display: 'flex', gap: 'var(--dt-space-2)', marginTop: 'var(--dt-space-2)' }}>
                   <button type="button" onClick={saveGeneral} style={{ ...dtSaveBtn(), flex: 1 }}>Spara kommentar</button>
-                  <button type="button" onClick={() => { setGenComment(''); setMode('idle') }} style={dtGhostBtn()}>Avbryt</button>
+                  <button type="button" onClick={() => { setGenComment(''); setMode('idle') }} style={dtGhostBtn()}>Stäng</button>
                 </div>
+                <button type="button" onClick={togglePrev} style={{ background: 'none', border: 'none', padding: '4px 0 0', marginTop: 'var(--dt-space-2)', cursor: 'pointer', fontFamily: 'var(--dt-font)', fontSize: 'var(--dt-text-xs)', color: 'var(--dt-accent)', textAlign: 'left' }}>
+                  {showPrev ? '▾ Dölj tidigare kommentarer' : '▸ Visa tidigare kommentarer'}
+                </button>
+                {showPrev && (
+                  <div style={{ marginTop: 'var(--dt-space-2)', maxHeight: 220, overflowY: 'auto' }}>
+                    {notes.length === 0 && <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-mute)' }}>Inga tidigare kommentarer än.</p>}
+                    {notes.map((n) => (
+                      <div key={n.id} style={{ fontSize: 'var(--dt-text-xs)', padding: '6px 0', borderBottom: '1px solid var(--dt-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                          <span style={{ color: 'var(--dt-accent)' }}>{n.kind === 'style' ? 'stil' : 'kommentar'}</span>
+                          <button type="button" onClick={() => removeNote(n.id)} style={{ ...dtGhostBtn(), padding: '0 6px' }}>ta bort</button>
+                        </div>
+                        <div style={{ color: 'var(--dt-text-dim)', wordBreak: 'break-word' }}>{n.comment || n.label || n.selector}</div>
+                        <div style={{ color: 'var(--dt-text-mute)' }}>{n.page} · {n.theme}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -447,21 +500,6 @@ export default function DesignToolShell({
               </div>
             )}
 
-            {mode === 'notes' && (
-              <div style={{ marginTop: 'var(--dt-space-3)', borderTop: '1px solid var(--dt-border)', paddingTop: 'var(--dt-space-2)', maxHeight: 260, overflowY: 'auto' }}>
-                {notes.length === 0 && <p style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-mute)' }}>Inga anteckningar än.</p>}
-                {notes.map((n) => (
-                  <div key={n.id} style={{ fontSize: 'var(--dt-text-xs)', padding: '6px 0', borderBottom: '1px solid var(--dt-border)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                      <span style={{ color: 'var(--dt-accent)' }}>{n.kind === 'style' ? 'stil' : 'kommentar'}</span>
-                      <button type="button" onClick={() => removeNote(n.id)} style={{ ...dtGhostBtn(), padding: '0 6px' }}>ta bort</button>
-                    </div>
-                    <div style={{ color: 'var(--dt-text-dim)', wordBreak: 'break-word' }}>{n.comment || n.label || n.selector}</div>
-                    <div style={{ color: 'var(--dt-text-mute)' }}>{n.page} · {n.theme}</div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -505,7 +543,7 @@ export default function DesignToolShell({
             fontSize: 'var(--dt-text-sm)', pointerEvents: 'auto',
             animation: 'dtSlideUp var(--dt-dur) var(--dt-spring-bounce)',
           }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.tone === 'warn' ? '#f59e0b' : 'var(--dt-accent)', boxShadow: 'var(--dt-glow)' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.tone === 'warn' ? 'var(--dt-warn)' : 'var(--dt-accent)', boxShadow: 'var(--dt-glow)' }} />
             <span>{t.msg}</span>
             {t.undo && <button type="button" onClick={() => runUndo(t)} style={{ ...dtGhostBtn(), padding: '2px 8px' }}>Ångra</button>}
             <button type="button" aria-label="Stäng" onClick={() => dismiss(t.id)} style={{ background: 'none', border: 'none', color: 'var(--dt-text-mute)', cursor: 'pointer', fontSize: 'var(--dt-text-sm)' }}>✕</button>

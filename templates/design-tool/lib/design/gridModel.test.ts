@@ -3,6 +3,8 @@ import {
   clampPlacement, snapTracks, gridColumnValue, gridRowValue,
   placementFromGeometry, assignRowsByTop, normalizeRows,
   colFromWireframeX, spanFromWireframeW, areasOverlap, overlappingKeys,
+  gridColLineCss, gridBandCss, fadeMaskVertical, fadeMaskHorizontal,
+  topBoxMoveMode,
   type GridArea, type GridGeom,
 } from './gridModel'
 
@@ -103,5 +105,65 @@ describe('överlapps-detektion', () => {
     const a = area({ key: 'a', colStart: 1, span: 12, row: 1, hidden: true })
     const b = area({ key: 'b', colStart: 1, span: 12, row: 1 })
     expect(areasOverlap(a, b)).toBe(false)
+  })
+})
+
+describe('R15: oändlig grid-canvas – CSS-byggare', () => {
+  it('gridColLineCss: en 1px-linje per spår, spårbredd i strängen', () => {
+    const css = gridColLineCss('var(--dt-grid-line)', 40)
+    expect(css).toBe('repeating-linear-gradient(to right, var(--dt-grid-line) 0 1px, transparent 1px 40px)')
+  })
+  it('gridColLineCss: klampar spårbredd till minst 2px', () => {
+    expect(gridColLineCss('red', 0)).toContain('transparent 1px 2px')
+    expect(gridColLineCss('red', -5)).toContain('transparent 1px 2px')
+  })
+
+  it('gridBandCss: två kanter (grid-line) + fyllning (grid-band), centrerade på gränsen', () => {
+    const css = gridBandCss('var(--dt-grid-line)', 'var(--dt-grid-band)', 46, 10)
+    // gutter 10 → h=5: höger kant vid 4–5px, vänster kant på nästa band vid 41–42px.
+    expect(css).toContain('var(--dt-grid-band) 0 4px')
+    expect(css).toContain('var(--dt-grid-line) 4px 5px')
+    expect(css).toContain('transparent 5px 41px')
+    expect(css).toContain('var(--dt-grid-line) 41px 42px')
+    expect(css).toContain('var(--dt-grid-band) 42px 46px')
+  })
+  it('gridBandCss: klampar gutter till [2, step-2] så mönstret aldrig kollapsar', () => {
+    // gutter större än spårbredden klampas ned
+    const css = gridBandCss('L', 'B', 20, 999)
+    expect(css).toContain('repeating-linear-gradient(to right,')
+    // klampad gutter = step-2 = 18 → h=9: transparent-segmentet blir tomt men giltigt
+    expect(css).toContain('transparent 9px 11px')
+  })
+
+  it('fadeMaskVertical: transparent ovan sidan, full svärta från toppen och nedåt', () => {
+    expect(fadeMaskVertical(120, 100)).toBe(
+      'linear-gradient(to bottom, transparent 20px, #000 120px, #000 100%)',
+    )
+  })
+  it('fadeMaskVertical: hanterar sid-topp ovanför viewporten (negativa stopp)', () => {
+    expect(fadeMaskVertical(-40, 60)).toContain('transparent -100px')
+    expect(fadeMaskVertical(-40, 60)).toContain('#000 -40px')
+  })
+
+  it('fadeMaskHorizontal: full inom sidans bredd, uttonande åt båda sidor', () => {
+    expect(fadeMaskHorizontal(200, 800, 120)).toBe(
+      'linear-gradient(to right, transparent 80px, #000 200px, #000 800px, transparent 920px)',
+    )
+  })
+})
+
+describe('W12-hybrid: topBoxMoveMode (live grid vs fri skiss)', () => {
+  it('riktigt grid + snap på ⇒ live grid-placering', () => {
+    expect(topBoxMoveMode({ isRealGrid: true, snapToGrid: true, hasDirtyIntent: false })).toBe('grid')
+  })
+  it('snap AV ⇒ fri skiss (intent) även i ett riktigt grid', () => {
+    expect(topBoxMoveMode({ isRealGrid: true, snapToGrid: false, hasDirtyIntent: false })).toBe('intent')
+  })
+  it('ICKE-grid-container ⇒ fri skiss (intent) oavsett snap', () => {
+    expect(topBoxMoveMode({ isRealGrid: false, snapToGrid: true, hasDirtyIntent: false })).toBe('intent')
+    expect(topBoxMoveMode({ isRealGrid: false, snapToGrid: false, hasDirtyIntent: false })).toBe('intent')
+  })
+  it('en låda som redan är en smutsig fri-flytt-skiss förblir intent (även i grid + snap)', () => {
+    expect(topBoxMoveMode({ isRealGrid: true, snapToGrid: true, hasDirtyIntent: true })).toBe('intent')
   })
 })

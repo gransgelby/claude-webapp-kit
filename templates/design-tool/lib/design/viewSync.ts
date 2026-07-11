@@ -9,7 +9,20 @@
 //
 // Ren modul (ingen DOM, ingen React) – enhetstestad i viewSync.test.ts.
 
-// ── B3 · Flyttbar lodrät avdelare ────────────────────────────────────────────
+// ── R1 · Låst 50/50-skiljevägg ───────────────────────────────────────────────
+
+/**
+ * Höger panelbredd när skiljeväggen är LÅST i mitten (R1 · total spegel): exakt
+ * halva fönstret → båda paneler får identiskt utrymme och speglar varandra utan
+ * att den riktiga sidans responsiva reflow triggas. (Den flyttbara varianten –
+ * resolveSplit/clampSplitFrac nedan – är kvar men används inte längre av shellen;
+ * behålls för ett ev. framtida "skala i st f reflow"-läge.)
+ */
+export function centeredRightWidth(winW: number): number {
+  return winW / 2
+}
+
+// ── B3 · Flyttbar lodrät avdelare (avställd – se R1) ─────────────────────────
 
 /** Minsta panelbredd (px) på vardera sidan om avdelaren. */
 export const MIN_PANEL = 320
@@ -66,6 +79,62 @@ export function wfPanFromDocDelta(dDoc: number, wfZoom: number, k: number): numb
   return -dDoc * k * wfZoom
 }
 
+// ── R2 · Synkad hjul-skroll ──────────────────────────────────────────────────
+
+/**
+ * Dokument-delta (verkliga px) ur ett wheel-deltaY (skärm-px): scroll ner
+ * (deltaY > 0) → dokumentet scrollar ner (visar senare innehåll). Den riktiga
+ * sidan kan vara transform-skalad (pageZoom) → 1 skärm-px = 1/pageZoom dokument-
+ * px, så skroll-hastigheten känns konstant oavsett zoom. Speglar magnituden i
+ * docDeltaFromPagePan (men motsatt tecken – wheel är motsatsen till grab-drag).
+ * Wireframens pan följer sedan via wfPanFromDocDelta på det FAKTISKT applicerade
+ * skroll-deltat → båda vyerna stannar samtidigt vid dokumentets ändar.
+ */
+export function scrollSyncDoc(wheelDeltaY: number, pageZoom: number): number {
+  return wheelDeltaY / Math.max(0.01, pageZoom)
+}
+
+// ── R1 (GATE-omfix) · Spegel-projektion: en enda källa till sanning ──────────
+//
+// Grundorsaken till spegel-driften vid cursor-ankrad hjul-zoom var att
+// wireframens `pan` och den riktiga sidans position (`scrollTop` + `pagePanX`)
+// lagrades som TRE oberoende tillstånd och uppdaterades av olika formler vid
+// zoom (+ osymmetrisk klamp) → de kunde driva isär och ackumulera fel.
+//
+// Fixen: den RIKTIGA sidans dokument-position är AUKTORITATIV (browsern klampar
+// scrollTop naturligt), och wireframens `pan` HÄRLEDS deterministiskt ur den.
+// Då kan panelerna omöjligt driva isär – spegeln är pixelexakt per konstruktion.
+//
+// Alignment-invarianten (uppmätt): en wf-ruta ligger exakt över sin riktiga ruta
+// när  panY + zoom·pad + pageScale·scrollTop = 0  (Y) och  panX + zoom·pad −
+// pageLeftRel = 0  (X), där pageScale = fit·zoom = k·zoom och k = fit (FW1).
+
+/**
+ * Wireframens `pan` (x,y) som gör spegeln PIXELEXAKT givet sidans auktoritativa
+ * dokument-position. `pan` lagras aldrig separat – den projiceras alltid härur.
+ *   scrollTop    sidans vertikala dokument-offset (px, browser-klampad)
+ *   pageLeftRel  sidans vänsterkant rel. sin panels vänsterkant (px)
+ *   zoom         delad zoom-nivå · pageScale = fit·zoom
+ *   pad          wireframe-canvasens WF_PAD (wf-panel-px, pre-zoom)
+ */
+export function mirrorPan(
+  scrollTop: number, pageLeftRel: number, zoom: number, pageScale: number, pad: number,
+): { x: number; y: number } {
+  return { x: pageLeftRel - zoom * pad, y: -(zoom * pad + pageScale * scrollTop) }
+}
+
+/**
+ * Ny sid-vänsterkant (rel. panelens vänsterkant) som håller dokument-X under
+ * `focusX` (px från panelens vänsterkant) STILLA när sid-skalan går ps0→ps1.
+ * Horisontell motsvarighet till pageZoomScroll (zoom-kring-pekare i sidled).
+ */
+export function pageLeftZoom(
+  pageLeftRel: number, ps0: number, ps1: number, focusX: number,
+): number {
+  const docX = (focusX - pageLeftRel) / Math.max(0.0001, ps0)
+  return focusX - docX * ps1
+}
+
 // ── B5 · Zoom med fast punkt + synkad sid-scroll ─────────────────────────────
 
 export const ZOOM_MIN = 0.4
@@ -97,13 +166,16 @@ export function zoomAtPoint(
 }
 
 /**
- * Ny scrollTop för VÄNSTER sida när zoomen ändras: dokument-positionen i
- * panelens MITT hålls stilla. Panelens synliga dokument-höjd = viewH / z
- * (sidan renderas transform-skalad med kompenserad layout-höjd).
+ * Ny scrollTop för VÄNSTER sida när zoomen ändras: dokument-punkten vid `focusY`
+ * (px från panelens topp) hålls STILLA. Default focusY = viewH/2 → centrerad zoom
+ * (B5); L1 · mjuk fokuspunkts-zoom skickar pekarens Y så punkten under pekaren
+ * ligger stilla även i vänster panel. Panelens synliga dokument-höjd = viewH / z.
  */
-export function pageZoomScroll(scrollTop: number, viewH: number, zOld: number, zNew: number): number {
-  const centerDoc = scrollTop + viewH / (2 * Math.max(0.01, zOld))
-  return Math.max(0, centerDoc - viewH / (2 * Math.max(0.01, zNew)))
+export function pageZoomScroll(
+  scrollTop: number, viewH: number, zOld: number, zNew: number, focusY = viewH / 2,
+): number {
+  const focusDoc = scrollTop + focusY / Math.max(0.01, zOld)
+  return Math.max(0, focusDoc - focusY / Math.max(0.01, zNew))
 }
 
 // ── B5 · Standardskärm-rektangeln (MacBook Pro 14") ──────────────────────────
@@ -112,12 +184,21 @@ export function pageZoomScroll(scrollTop: number, viewH: number, zOld: number, z
 export const MACBOOK14 = { w: 1512, h: 982, label: 'MacBook 14″' } as const
 
 /**
- * Rektangeln i wf-px, centrerad horisontellt över sidans innehåll (gridW =
- * innehållets wf-bredd) och från dokument-toppen – följer zoom/pan gratis
- * eftersom den ritas inne i wireframens transformerade canvas.
+ * R13 · MacBook-rektangeln som VIEWPORT-indikator: ritas i wireframe-panelens
+ * viewport-koordinater (utanför den skrollade/transformerade canvasen) så den
+ * står STILL vertikalt vid skroll (ankrad till toppen av synliga ytan), men
+ * SKALAR med zoom (zoom ändrar hur mycket dokument = en skärm). Horisontellt
+ * följer den innehållets mitt (panX + zoom) så den ligger kvar över sidans
+ * kolumner även vid horisontell pan.
+ *   k       = wf-px per verklig px · gridW = innehållets wf-bredd (pre-zoom)
+ *   zoom    = wireframens transform-skala · panX = wireframens translate.x
+ *   pad     = canvasens WF_PAD (pre-zoom) så mitten räknas från innehålls-origo
  */
-export function macbookRect(k: number, gridW: number): { x: number; y: number; w: number; h: number } {
-  const w = MACBOOK14.w * k
-  const h = MACBOOK14.h * k
-  return { x: (gridW - w) / 2, y: 0, w, h }
+export function macbookViewportRect(
+  k: number, gridW: number, zoom: number, panX: number, pad = 0,
+): { left: number; top: number; w: number; h: number } {
+  const w = MACBOOK14.w * k * zoom
+  const h = MACBOOK14.h * k * zoom
+  const centerX = panX + (pad + gridW / 2) * zoom
+  return { left: centerX - w / 2, top: 0, w, h }
 }

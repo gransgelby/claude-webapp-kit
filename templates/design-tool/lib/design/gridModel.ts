@@ -66,6 +66,18 @@ export function gridColumnValue(a: Pick<GridArea, 'colStart' | 'span'>): string 
   return `${a.colStart} / span ${a.span}`
 }
 
+/**
+ * W12-hybrid: i vilket LÄGE flyttas en topp-låda? `'grid'` = deklarativt sant,
+ * flytten skrivs LIVE som en grid-placering (grid-column/row); `'intent'` = fri
+ * skiss (intention → uppgift till Claude), sidan rörs inte. En låda som redan bär
+ * en smutsig fri-flytt-intent förblir en skiss. Bara ett RIKTIGT grid (`isRealGrid`,
+ * avläst live ur DOM, ej antaget) + snap på ger live grid-flytt. Ren → testbar.
+ */
+export function topBoxMoveMode(opts: { isRealGrid: boolean; snapToGrid: boolean; hasDirtyIntent: boolean }): 'grid' | 'intent' {
+  if (opts.hasDirtyIntent) return 'intent'
+  return opts.isRealGrid && opts.snapToGrid ? 'grid' : 'intent'
+}
+
 /** CSS-värdet för `grid-row` ur en placering (rad-höjd 1). */
 export function gridRowValue(a: Pick<GridArea, 'row'>): string {
   return `${a.row}`
@@ -128,6 +140,61 @@ export function colFromWireframeX(xPx: number, cellW: number, cols: number): num
 export function spanFromWireframeW(wPx: number, cellW: number, cols: number): number {
   if (cellW <= 0) return 1
   return clampInt(wPx / cellW, 1, cols)
+}
+
+// ── R15: oändlig grid-canvas (rena CSS-byggare, enhets-testbara) ─────────────
+// Grid-illustrationen ritas i VIEWPORT-koordinater så den kan tona ut mot en
+// "oändlig canvas" (full styrka nedåt, uttonande åt sidorna + uppåt) och alltid
+// förankras i sidans grid-origo. All CSS-strängsyntes lever här (fri från DOM).
+
+const px2 = (n: number): string => `${Number(n.toFixed(2))}px`
+
+/**
+ * `repeating-linear-gradient` med EN 1px-kolumnlinje per spår (`stepPx` brett).
+ * Används i mobil-spegeln / när gutter-bredden är okänd. `color` är ett färg-
+ * uttryck (t.ex. `'var(--dt-grid-line)'`). Spårbredden klampas till ≥ 2px.
+ */
+export function gridColLineCss(color: string, stepPx: number): string {
+  const s = Math.max(2, stepPx)
+  return `repeating-linear-gradient(to right, ${color} 0 1px, transparent 1px ${px2(s)})`
+}
+
+/**
+ * `repeating-linear-gradient` som ritar ett gutter-BAND per spårgräns: två 1px-
+ * kanter `gutterPx` isär, centrerade PÅ gränsen (bandet straddlar den → sömlös
+ * upprepning), med en svag fyllning emellan. `stepPx` = spårbredd (spår + gutter).
+ * `lineColor`/`bandColor` är färg-uttryck (token-var:er). Bredder klampas defensivt.
+ */
+export function gridBandCss(lineColor: string, bandColor: string, stepPx: number, gutterPx: number): string {
+  const s = Math.max(2, stepPx)
+  const g = Math.max(2, Math.min(gutterPx, s - 2))
+  const h = g / 2 // halva gutter-bredden
+  return `repeating-linear-gradient(to right,` +
+    ` ${bandColor} 0 ${px2(h - 1)},` +            // höger halva av bandet vid tile-start
+    ` ${lineColor} ${px2(h - 1)} ${px2(h)},` +    // höger kant
+    ` transparent ${px2(h)} ${px2(s - h)},` +     // cell-interiör (luft mellan band)
+    ` ${lineColor} ${px2(s - h)} ${px2(s - h + 1)},` + // vänster kant på nästa band
+    ` ${bandColor} ${px2(s - h + 1)} ${px2(s)})`  // vänster halva av nästa band
+}
+
+/**
+ * Vertikal fade-mask (mask-image): transparent OVANFÖR sidan (tonar in över
+ * `fadeUpPx`), full svärta från sidans topp (`topPx`) och nedåt till 100% →
+ * griden fortsätter i FULL styrka oändligt nedåt men tonar ut uppåt.
+ */
+export function fadeMaskVertical(topPx: number, fadeUpPx: number): string {
+  return `linear-gradient(to bottom, transparent ${px2(topPx - fadeUpPx)}, #000 ${px2(topPx)}, #000 100%)`
+}
+
+/**
+ * Horisontell fade-mask (mask-image): full inom sidans kolumn-bredd
+ * [`leftPx`, `rightPx`], tonar ut till 0 över `fadePx` bortom vardera kant →
+ * kolumnlinjerna tonar ut åt sidorna (oändlighetskänsla, utan att antyda innehåll).
+ */
+export function fadeMaskHorizontal(leftPx: number, rightPx: number, fadePx: number): string {
+  return `linear-gradient(to right,` +
+    ` transparent ${px2(leftPx - fadePx)}, #000 ${px2(leftPx)},` +
+    ` #000 ${px2(rightPx)}, transparent ${px2(rightPx + fadePx)})`
 }
 
 /** True om två områden på SAMMA rad överlappar i kolumnled (ogiltig placering). */

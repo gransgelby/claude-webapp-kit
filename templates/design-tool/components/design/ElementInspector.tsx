@@ -156,8 +156,8 @@ export default function ElementInspector({ el, onSelect, flash, compact }: Props
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--dt-radius-pill)',
-                color: src.exact ? 'var(--dt-accent-contrast)' : '#fca5a5',
-                background: src.exact ? 'var(--dt-accent)' : 'rgba(239,68,68,0.16)',
+                color: src.exact ? 'var(--dt-accent-contrast)' : 'var(--dt-danger)',
+                background: src.exact ? 'var(--dt-accent)' : 'var(--dt-danger-weak)',
               }}>{src.exact ? '✓ Exakt (dev-källa)' : '≈ Gissning'}</span>
               {src.component && <span style={{ fontSize: 'var(--dt-text-xs)', color: 'var(--dt-text-dim)', fontFamily: 'var(--dt-font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{src.component}</span>}
             </div>

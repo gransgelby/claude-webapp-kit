@@ -22,6 +22,16 @@ import { DEFAULT_GRID, type GridConfig } from './pageGrid'
 //   export { GRID } from './gridConfig'
 export const GRID: GridConfig = DEFAULT_GRID
 
+// ── SÖM 4: NAV_PAGES ─────────────────────────────────────────────────────────
+// "Byt sida"-popovern i Design mode listar dessa sidor så man slipper minnas
+// exakta URL:er. Generisk default nedan — byt mot din apps sidor (matcha din
+// huvudmeny). Verktyget är admin-gatat, så admin-sidor får listas här.
+export interface NavPage { label: string; href: string }
+export const NAV_PAGES: NavPage[] = [
+  { label: 'Hem', href: '/' },
+  { label: 'Dashboard', href: '/dashboard' },
+]
+
 // ── SÖM 2: ADMIN-GATE ────────────────────────────────────────────────────────
 // DesignTool renderar bara när tier === 'admin'. Koppla din egen auth här.
 // Default: 'admin' i dev, annars 'anon' (byt mot ett riktigt anrop i prod).

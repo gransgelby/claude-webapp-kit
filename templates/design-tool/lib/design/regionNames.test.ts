@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  cleanName, pickName, landmarkName, typeName, snippetName, regionName,
+  cleanName, pickName, landmarkName, typeName, snippetName, regionName, slotRoleName,
   EMPTY_FACTS, PAGE_TITLE_NAME, type NameCandidate, type ContentFacts,
 } from './regionNames'
 
@@ -30,17 +30,17 @@ describe('cleanName', () => {
     expect(cleanName('Fritidshus vs åretruntboende 2024')).toBe('Fritidshus vs åretruntboende')
   })
   it('kapar räknare + orphan-bindeord ("1 av 3")', () => {
-    expect(cleanName('Produktfoto 1 av 3')).toBe('Produktfoto')
+    expect(cleanName('Fastighetsfoto 1 av 3')).toBe('Fastighetsfoto')
   })
   it('behåller statiska namn med symboler men utan siffror', () => {
     expect(cleanName('Klimat & miljö')).toBe('Klimat & miljö')
     expect(cleanName('Månadsmedeltemperatur (°C)')).toBe('Månadsmedeltemperatur (°C)')
   })
   it('refuserar text med siffror kvar i mitten (instansdata-aktigt)', () => {
-    expect(cleanName('Norrby Ekhaga 1:14 · Norrby')).toBe('')
+    expect(cleanName('Hudiksvall Sjötorp 1:14 · Hudiksvall')).toBe('')
   })
   it('kapar långa namn vid ordgräns med ellips', () => {
-    const out = cleanName('Sammanfattning av leverantörens samtliga åtaganden här')
+    const out = cleanName('Riksintresse totalförsvaret via Länsstyrelsen och kommunen')
     expect(out.length).toBeLessThanOrEqual(29)
     expect(out.endsWith('…')).toBe(true)
     expect(out).not.toMatch(/\s…$/)
@@ -51,15 +51,15 @@ describe('cleanName', () => {
 
 describe('pickName', () => {
   it('rubrik vinner över typografisk etikett även om etiketten kommer först', () => {
-    // Betygs-kortet: p.font-bold "7.7/10" ligger FÖRE h2 i DOM:en.
-    expect(pickName([label('7.7/10'), heading('Sammanfattning')])).toBe('Sammanfattning')
+    // Lämplighets-kortet: p.font-bold "7.7/10" ligger FÖRE h2 i DOM:en.
+    expect(pickName([label('7.7/10'), heading('Lämplighetsanalys')])).toBe('Lämplighetsanalys')
   })
   it('rubrikens direkta text vinner över dynamiskt barn-innehåll', () => {
-    // h3 "Profil" + <span>Testkonto AB</span> ⇒ own-texten gäller.
-    expect(pickName([heading('Profil Testkonto AB', 3, 'Profil')])).toBe('Profil')
+    // h3 "Områdesprofil" + <span>Hudiksvall kommun</span> ⇒ own-texten gäller.
+    expect(pickName([heading('Områdesprofil Hudiksvall kommun', 3, 'Områdesprofil')])).toBe('Områdesprofil')
   })
   it('h1 blir alltid sidrubriks-namnet (sidtitel = instansdata)', () => {
-    expect(pickName([heading('Exempelsidan 12', 1)])).toBe(PAGE_TITLE_NAME)
+    expect(pickName([heading('Sjötorpsvägen 12', 1)])).toBe(PAGE_TITLE_NAME)
   })
   it('aria-label slår rubriker', () => {
     expect(pickName([heading('Rubrik'), aria('Sökpanel')])).toBe('Sökpanel')
@@ -70,7 +70,7 @@ describe('pickName', () => {
     expect(pickName([label('1/3')])).toBe(null)
   })
   it('alt-text används när rubrik/etikett saknas', () => {
-    expect(pickName([label('1/3'), alt('Produktfoto 1 av 3')])).toBe('Produktfoto')
+    expect(pickName([label('1/3'), alt('Fastighetsfoto 1 av 3')])).toBe('Fastighetsfoto')
   })
 })
 
@@ -115,5 +115,36 @@ describe('regionName', () => {
     expect(regionName([], 'div', null, facts({ bodyText: 'Obs: eU ppm är en markindikator' }), 'Område 1'))
       .toBe('Obs: eU ppm är en…')
     expect(regionName([], 'div', null, EMPTY_FACTS, 'Område 3')).toBe('Område 3')
+  })
+})
+
+// ── R8a: slot-namn (Faktaspalt/Bildspel) ─────────────────────────────────────
+
+describe('slotRoleName', () => {
+  it('roll ur innehåll: bild → Bildspel, karta → Karta, text/fält → Faktaspalt', () => {
+    expect(slotRoleName(facts({ imgFrac: 0.5 }))).toBe('Bildspel')
+    expect(slotRoleName(facts({ mapLike: true }))).toBe('Karta')
+    expect(slotRoleName(facts({ list: true }))).toBe('Lista')
+    expect(slotRoleName(facts({ bodyText: 'Sjötorpsvägen 12 Näsviken Boarea Tomt' }))).toBe('Faktaspalt')
+    expect(slotRoleName(EMPTY_FACTS)).toBe(null)
+  })
+})
+
+describe('regionName · SLOT-kedjan (R8a)', () => {
+  it('en slot som bär sidtiteln (h1) blir INTE "Sidrubrik" utan roll ur innehållet', () => {
+    // Hero-vänsterkolumnen: h1 (adress) + font-semibold-chip ("Gård") + fält.
+    const cands = [heading('Sjötorpsvägen 12', 1), label('Gård'), label('3 450 000 kr')]
+    const heroFacts = facts({ bodyText: 'Sjötorpsvägen 12 Näsviken Utropspris Boarea Tomt' })
+    // Utan slot: h1 → PAGE_TITLE_NAME (dagens beteende för icke-slots).
+    expect(regionName(cands, 'div', null, heroFacts, 'Område 1')).toBe(PAGE_TITLE_NAME)
+    // Som slot: hoppar h1 + etikett-skrap ("Gård") → roll = "Faktaspalt".
+    expect(regionName(cands, 'div', null, heroFacts, 'Område 1', { slot: true })).toBe('Faktaspalt')
+  })
+  it('en bild-dominerad slot blir "Bildspel"', () => {
+    expect(regionName([], 'div', null, facts({ imgFrac: 0.6 }), 'Område 2', { slot: true })).toBe('Bildspel')
+  })
+  it('en slots äkta under-rubrik (h2) vinner fortfarande', () => {
+    expect(regionName([heading('Sammanfattning', 2)], 'div', null, EMPTY_FACTS, 'Område 1', { slot: true }))
+      .toBe('Sammanfattning')
   })
 })

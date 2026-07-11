@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
   buildRegionTree, flattenRegions, isSubstantial, isVisuallySeparated, isRegionCandidate,
-  isRowContainer, localPlacement, scopeMech, coverage,
+  isRowContainer, localPlacement, scopeMech, coverage, canBeRegionTag,
   DEFAULT_REGION_OPTS, type VisualNode, type Rect,
 } from './regionModel'
 
@@ -74,6 +74,27 @@ describe('isRegionCandidate', () => {
     const chip = vn({ rect: R(0, 0, 170, 30), bgColor: 'rgb(0, 0, 0)' })
     expect(isRegionCandidate(chip, null)).toBe(false)
   })
+  it('en TEXT-/FRAS-tagg (t.ex. tonad callout-<p>) är ALDRIG kandidat, hur stor den än är (R7)', () => {
+    // Markradon-buggen: en reference-<p> med bg-slate-400/10 (skiljer sig från
+    // kortets bg) och area > minArea över-detekterades som en egen nästlad låda.
+    const callout = vn({ tag: 'p', rect: R(0, 0, 146, 173), bgColor: 'rgba(148,163,184,0.1)' })
+    expect(isSubstantial(callout)).toBe(true)          // stor nog rent geometriskt
+    expect(isVisuallySeparated(callout, null)).toBe(true) // egen (tonad) bakgrund
+    expect(isRegionCandidate(callout, null)).toBe(false)  // men ingen egen region
+    // En rubrik likaså (h2/h3 …) – de blir platshållare (R14), inte lådor.
+    expect(isRegionCandidate(vn({ tag: 'h2', rect: R(0, 0, 300, 60), bgColor: 'rgb(0,0,0)' }), null)).toBe(false)
+  })
+})
+
+describe('canBeRegionTag', () => {
+  it('behållar-taggar kan bära regioner; text-/fras-taggar kan inte', () => {
+    for (const t of ['div', 'section', 'article', 'aside', 'ul', 'ol', 'li', 'figure', 'table', 'nav', 'a', 'button']) {
+      expect(canBeRegionTag(t)).toBe(true)
+    }
+    for (const t of ['p', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'label', 'blockquote', 'figcaption', 'dt', 'dd']) {
+      expect(canBeRegionTag(t)).toBe(false)
+    }
+  })
 })
 
 describe('isRowContainer', () => {
@@ -126,6 +147,26 @@ describe('buildRegionTree · kort-detektering & triviala wrappers', () => {
     expect(region.ref).toBe(section.ref)      // yttersta elementet behålls
     expect(region.innerRef).toBe(big.ref)     // det visuella kortet noteras
     expect(region.children.map((c) => c.ref)).toEqual([sub1.ref, sub2.ref]) // barnen lyfts
+  })
+
+  it('en tonad callout-<p> i ett kort blir INGEN falsk nästlad region (R7 · Markradon)', () => {
+    // Riskkort = ytterram (borderSides 4) med inre bg-lager (merge) som innehåller
+    // ikon-rad, beskrivning och en STOR reference-<p> med svag tonad bakgrund.
+    const iconRow = vn({ rect: R(16, 16, 258, 40) })                    // liten – ingen region
+    const desc = vn({ tag: 'p', rect: R(16, 64, 258, 40) })             // text – ingen region
+    const callout = vn({ tag: 'p', rect: R(16, 120, 258, 173), bgColor: 'rgba(148,163,184,0.1)' }) // stor tonad <p>
+    const inner = vn({ rect: R(0, 0, 290, 320), bgColor: 'rgb(254, 243, 199)' }, [iconRow, desc, callout])
+    const cardEl = vn({ rect: R(0, 0, 290, 320), borderSides: 4 }, [inner]) // ytterram utan egen bg
+    const grid = vn({ rect: R(0, 0, 1200, 320), display: 'grid', gridCols: 4, colGap: 10 }, [
+      cardEl, card(R(300, 0, 290, 320)), card(R(600, 0, 290, 320)), card(R(900, 0, 290, 320)),
+    ])
+    const section = vn({ tag: 'section', semantic: true, rect: R(0, 0, 1200, 360) }, [grid])
+    const root = vn({ rect: R(0, 0, 1200, 800) }, [section])
+    const tree = buildRegionTree(root)
+    const sec = tree.children[0]
+    expect(sec.children).toHaveLength(4)                 // exakt 4 kort
+    const markradon = sec.children[0]
+    expect(markradon.children).toHaveLength(0)           // INGEN falsk nästling av callout-<p>:n
   })
 })
 
@@ -331,6 +372,48 @@ describe('buildRegionTree · dashboard-lik sida end-to-end', () => {
 
     // flattenRegions ger hela hierarkin (rot + 4 topp + 2+4+4 nästlade).
     expect(flattenRegions(tree)).toHaveLength(1 + 4 + 2 + 4 + 4)
+  })
+})
+
+describe('RegionNode.separated (W6 · synlig ruta vs osynlig struktur-container)', () => {
+  it('synliga kort = true, transparent grupperande wrapper/sektion = false', () => {
+    // En semantisk sektion (ingen egen bakgrund) grupperar två synliga kort i en
+    // transparent grid-wrapper. Sektionen = struktur (syns ej som egen ruta),
+    // korten = synliga rutor.
+    const c1 = card(R(0, 100, 290, 200))
+    const c2 = card(R(300, 100, 290, 200))
+    const innerGrid = vn({ rect: R(0, 100, 600, 200), display: 'grid', gridCols: 2, colGap: 10 }, [c1, c2])
+    const section = vn({ tag: 'section', semantic: true, rect: R(0, 80, 600, 240) }, [
+      vn({ rect: R(0, 80, 600, 20) }), // rubrikrad (för liten → ingen region)
+      innerGrid,
+    ])
+    const root = vn({ rect: R(0, 0, 800, 400), bgColor: 'rgb(250, 250, 250)' }, [section])
+    const tree = buildRegionTree(root)
+    expect(tree.separated).toBe(true) // roten = sidan
+    const sec = tree.children[0]
+    expect(sec.ref).toBe(section.ref)
+    expect(sec.separated).toBe(false) // semantisk men utan egen bakgrund/ram → struktur
+    expect(sec.children.map((c) => c.ref).sort()).toEqual([c1.ref, c2.ref].sort())
+    for (const childC of sec.children) expect(childC.separated).toBe(true)
+  })
+
+  it('merge-region ärver synlighet från det innersta kortet', () => {
+    const cardInner = card(R(0, 100, 400, 300))
+    const section = vn({ tag: 'section', semantic: true, rect: R(0, 100, 400, 300) }, [cardInner])
+    const root = vn({ rect: R(0, 0, 600, 500), bgColor: 'rgb(250, 250, 250)' }, [section])
+    const tree = buildRegionTree(root)
+    const reg = tree.children[0]
+    expect(reg.innerRef).toBe(cardInner.ref) // kortet mergat upp i sektionen
+    expect(reg.separated).toBe(true)         // synligheten ärvs från det synliga kortet
+  })
+
+  it('sticky band (locked) räknas som synligt', () => {
+    const nav = vn({ tag: 'nav', semantic: true, position: 'sticky', rect: R(0, 0, 1400, 60), bgColor: 'rgb(10, 10, 10)' })
+    const root = vn({ rect: R(0, 0, 1400, 400), bgColor: 'rgb(250, 250, 250)' }, [nav])
+    const tree = buildRegionTree(root)
+    const band = tree.children[0]
+    expect(band.kind).toBe('locked')
+    expect(band.separated).toBe(true)
   })
 })
 

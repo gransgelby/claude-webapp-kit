@@ -1,12 +1,12 @@
-// DesignTool-shellens EGNA token-set (`--dt-*`). Frikopplat från appens eget
-// tema; levereras med temaparet Precision (ljus + mörk).
+// DesignTool-shellens EGNA token-set (`--dt-*`). Post 2 (nattjobb 2026-07-10);
+// C1/C2 (batch 2026-07-10): frikopplat från appens admin-tema + temapar Precision.
 //
-// VIKTIGT designbeslut (inbakat): verktyget stylar sig ALDRIG med appens egna
-// design-tokens (prefixet i dtConfig, default `--c-*`). Det *läser/redigerar*
-// appens tokens som DATA, men dess egen chrome (HMI) drivs UTESLUTANDE av dessa
-// `--dt-*`-variabler. DesignTool är ett GENERELLT verktyg och appens eget
-// gränssnitt är app-specifikt – de delar varken tema eller tokens. (Verktyget
-// lånar aldrig en accent ur appen; chrome-valören står helt på egna ben.)
+// VIKTIGT designbeslut (inbakat): verktyget stylar sig ALDRIG med appens
+// `--c-*`-tokens. Det *läser/redigerar* appens tokens som DATA (Post 4), men dess
+// egen chrome (HMI) drivs UTESLUTANDE av dessa `--dt-*`-variabler. DesignTool är
+// ett GENERELLT verktyg och appens admin-knappar är ett APP-specifikt gränssnitt
+// – de delar varken tema eller tokens. (Tidigare "Midnattsglas" lånade appens
+// admin-amber; det bandet är kapat i C1/C2.)
 //
 // Scope-val: Shadow DOM bedömdes för invasivt för ett verktyg som lever av
 // `document.elementFromPoint`, live-redigerar den riktiga DOM:en och lägger
@@ -57,6 +57,35 @@ const SHARED: Record<string, string> = {
   'text-sm': '12px',
   'text-md': '13px',
   'text-lg': '15px',
+  // ── PW1 · Blueprint-språkets DELADE tokens (B1/B3/B4) ──────────────────────
+  // Blueprint = ritnings-språket för WIREFRAME-panelen (INTE ett css-tema; chromen
+  // förblir Precision). Delas mellan valörerna så ritningen har KONSEKVENT linjevikt
+  // och precisionstypografi i både Ljus och Mörk. Ritnings-INK-färgen (`bp-stroke`)
+  // och markerings-glöden (`sel-glow`) är valör-specifika (nedan) – bara vikt/spärr
+  // är gemensamma här.
+  line: '1px', // B1: EN konsekvent tunn linjevikt för ritningens streck
+  'line-strong': '1.5px', // B1/B3: betonad kant (markerings-ram, snap-linjer)
+  'track-heading': '0.06em', // B4: spärrade sektionsrubriker (precisions-känsla)
+  'track-label': '0.02em', // B4: lätt spärr på etiketter/knapptext
+  handle: '7px', // B3: precis, fyrkantig hörn-handtags-storlek (Figma-likt)
+  // PW2/B6 · Färgdisciplin: status-signalerna (warn/danger) är ETT system i st f
+  // spretande rå hex på 5 ställen (toast, mät-badge, dålig-låd-ram, WCAG-fail,
+  // dev-källa-gissning). Accenten (indigo) förblir den ENDA temafärgen; dessa är
+  // bara sällan-signaler. Identiska i båda valörerna (som Spara-accenten).
+  warn: '#f59e0b', // bärnsten – varning / "dålig"/off-token-signal
+  danger: '#fca5a5', // dov röd (text) – under AA / gissning
+  'danger-weak': 'rgba(239, 68, 68, 0.16)', // dov röd fyllning bakom danger-text
+  // ── FW8/W24 · KNAPPFÄRG-SPRÅK (positiv / varning) ─────────────────────────
+  // Skilt från status-signalerna ovan. Semantik: POSITIV (dämpad grön) = bra/primär
+  // handling (Spara); VARNING (bränd orange) = destruktiv/ångrar-man-handling
+  // (Spara inte, Förkasta). W24 VÄNDE semantiken: rödorange var förr Spara-accenten
+  // men rödorange = varning, inte positiv – Spara är bra och ska inte varna. Solid-
+  // varianterna är valör-oberoende (vit text klarar AA på båda). Text-/linje-
+  // varianterna (för dämpade ghost-knappar) sätts per valör nedan för AA i ljus+mörk.
+  positive: '#2e7d4f',            // dämpad grön – vit text 5.0:1 (AA)
+  'positive-contrast': '#ffffff',
+  'danger-solid': '#b5491f',      // bränd orange (fd Spara-accenten, nu VARNING) – vit text 5.34:1 (AA)
+  'danger-solid-contrast': '#ffffff',
   // Motion: en mjuk fjäder-kurva + en snabbare. Respekteras av reduced-motion
   // (dtMotion() nollar dur → 1ms och gör easet linjärt).
   dur: '260ms',
@@ -65,63 +94,104 @@ const SHARED: Record<string, string> = {
   'spring-bounce': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 }
 
-// Precision-temats DELADE identitet – samma i båda valörerna så ljus/mörk är
-// "samma tema, två valörer" (samma accent-hue, samma varma Spara-accent).
-const SAVE = '#c2410c'           // röd-orange (bränd orange) Spara-accent – varm, tydlig
-const SAVE_CONTRAST = '#ffffff'  // vit knapptext (kontrast 5.18:1 mot SAVE → WCAG-AA)
-
 export const DT_THEMES: Record<DtThemeId, DtTheme> = {
   // 1) Precision Mörk – dämpad, lugn mörk yta med indigo accent (samma hue som
   //    ljus, lyft för kontrast på mörkt). Ingen glöd, låg mättnad. Default:
   //    kommandocentral-känsla men diskret så APPEN är i fokus.
+  //    FW4/V10: ytorna avlilade → mörk, mörk BLÅGRÅ (desaturerad, hue skiftad
+  //    225°→217°, mättnad 31%→17% på surface-solid). Fokus ska ligga på appens
+  //    utseende, inte på ett lila verktyg.
   'precision-dark': {
     id: 'precision-dark',
     name: 'Precision Mörk',
     short: 'Mörk',
-    feel: 'Dämpad mörk yta med lugn indigo accent – diskret kommandobrygga',
+    feel: 'Dämpad mörk blågrå yta med lugn indigo accent – diskret kommandobrygga',
     base: 'dark',
     vars: {
       ...SHARED,
-      surface: 'rgba(22, 26, 38, 0.9)',
-      'surface-2': 'rgba(30, 35, 50, 0.92)',
-      'surface-raised': '#1a1f2e',
-      'surface-solid': '#121622',
-      text: '#e6e9f5',
-      'text-dim': 'rgba(230, 233, 245, 0.66)',
-      'text-mute': 'rgba(230, 233, 245, 0.42)',
-      accent: '#818cf8',
-      'accent-weak': 'rgba(129, 140, 248, 0.14)',
-      'accent-line': 'rgba(129, 140, 248, 0.35)',
-      'accent-contrast': '#10131f',
+      // V8: mer opaka wireframe-ytor → lådorna blir läsbara mot grid-bakgrunden.
+      // V10: dov blågrå (mindre blå-kanal → av-lilat), inte violett.
+      // FW7/W22: ytorna neutraliserade YTTERLIGARE mot ren stål-grå (b−r sänkt från
+      // 8–12 till 6–9) så verktyget inte läser blå-violett kvar man än tittar.
+      surface: 'rgba(24, 27, 31, 0.96)',
+      'surface-2': 'rgba(33, 37, 42, 0.96)',
+      'surface-raised': '#1c1f24',
+      'surface-solid': '#14161a',
+      text: '#e7e9ee',
+      'text-dim': 'rgba(231, 233, 238, 0.66)',
+      'text-mute': 'rgba(231, 233, 238, 0.42)',
+      // FW7/W22: accenten skiftad från indigo/violett (#818cf8, b−r=119, röd nära grön
+      // → violett) till en STÅL-blå (#7ea2d6, grön klart över röd → blå-grå ton, ingen
+      // violett). Fortfarande en tydlig, lite lyft accent; AA-kontrast behållen (6.9:1
+      // mot ytan). Detta var den sista faktiska lila-källan i mörka temat.
+      accent: '#7ea2d6',
+      'accent-weak': 'rgba(126, 162, 214, 0.14)',
+      'accent-line': 'rgba(126, 162, 214, 0.35)',
+      'accent-contrast': '#14161a',
       border: 'rgba(255, 255, 255, 0.1)',
-      'border-strong': 'rgba(129, 140, 248, 0.5)',
-      shadow: '0 6px 24px rgba(0, 0, 0, 0.45)',
-      'shadow-lg': '0 18px 55px rgba(0, 0, 0, 0.6)',
+      'border-strong': 'rgba(126, 162, 214, 0.5)',
+      // PW1/B1: blueprint-ritningens INK – en lugn, DEFINIERAD stroke (mer läsbar än
+      // det dova `border`) så wireframe-lådorna läser som precisa ritade linjer, inte
+      // knappt synliga kanter. Neutral (av-lilad) ljus ton på mörk yta.
+      'bp-stroke': 'rgba(226, 229, 236, 0.24)',
+      // PW1/B3: markerings-glöd – BARA valt element (accent-halo). Diskret men tydlig.
+      // FW7/W22: följer den nya stål-blå accenten (126,162,214) i st f indigo.
+      'sel-glow': '0 0 0 3px rgba(126, 162, 214, 0.20), 0 4px 16px rgba(126, 162, 214, 0.16)',
+      // R15: dovare grid-illustration (lägre kontrast än border → läser som
+      // bakgrund, inte som lådor; skiner subtilt igenom innehållet).
+      // V10: neutraliserad blågrå ton (mindre blå-kanal).
+      'grid-line': 'rgba(226, 229, 236, 0.07)',
+      'grid-band': 'rgba(226, 229, 236, 0.035)',
+      // V8: griden skiner igenom STARKARE – men bara TILLFÄLLIGT medan man drar.
+      'grid-line-strong': 'rgba(226, 229, 236, 0.16)',
+      'grid-band-strong': 'rgba(226, 229, 236, 0.08)',
+      // PW2/B2: mjuka LAGER-skuggor med KONSEKVENT ljuskälla (rakt uppifrån → ingen
+      // x-offset, bara nedåt-y i BÅDA lagren) så allt kastar skugga åt samma håll.
+      // Två lager: en tät kontakt-skugga + en vidare ambient → "tasteful djup".
+      shadow: '0 1px 2px rgba(0, 0, 0, 0.32), 0 6px 20px rgba(0, 0, 0, 0.42)',
+      'shadow-lg': '0 2px 6px rgba(0, 0, 0, 0.36), 0 20px 55px rgba(0, 0, 0, 0.55)',
+      // PW2/B2: 1px inre HÖGDAGER (topp-ljuskant) – samma ljuskälla uppifrån. Subtil
+      // ljus kant överst så paneler läser som lyft, frostat glas. Valör-specifik.
+      'inner-hi': 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
+      // PW2/B2: komposit-materialet för flytande paneler/dialoger = topp-högdager +
+      // lager-skuggan (ETT system-token att spreada, håller ljuskällan konsekvent).
+      'panel-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 6px rgba(0, 0, 0, 0.36), 0 20px 55px rgba(0, 0, 0, 0.55)',
+      // PW2/B5: oifyllt slider-spår (accent fyller vänster om thumben; detta är resten).
+      'track-empty': 'rgba(226, 229, 236, 0.14)',
       blur: 'blur(14px) saturate(1.05)',
       glow: '0 0 0 rgba(0,0,0,0)',
-      scrim: 'rgba(6, 8, 14, 0.55)',
-      // C4: varm Spara-accent (samma i båda valörerna).
-      save: SAVE,
-      'save-contrast': SAVE_CONTRAST,
+      scrim: 'rgba(8, 9, 12, 0.55)',
+      // FW8/W24: varnings-knappens text + linje (valör-specifik för AA på ghost-
+      // varianten). Mörk: ljus korall-röd (samma familj som status-danger) – läsbar
+      // på mörk yta (9.5:1). Solid-varianten (danger-solid) delas via SHARED.
+      'danger-text': '#fca5a5',
+      'danger-line': 'rgba(252, 165, 165, 0.5)',
       // C3: hover-slöja (subtil ljusning på mörkt) + ljushets-faktor.
       'hover-veil': 'rgba(255, 255, 255, 0.07)',
       'hover-bright': '1.09',
     },
   },
-  // 2) Precision Ljus – nära-vit, knivskarp, subtila skuggor, samma indigo accent.
-  //    Figma-ren verktygskänsla. Identisk med Mörk bortsett från ljus/mörk.
+  // 2) Precision Ljus – ljust VARMGRÅTT (mindre kliniskt vitt), knivskarp, subtila
+  //    skuggor, samma indigo accent. Figma-ren verktygskänsla. Identisk med Mörk
+  //    bortsett från ljus/mörk. FW4/V11: ytorna gick från rent vitt (0% mättnad)
+  //    till en aning varm grå (hue ~40°, R≥G≥B) så det känns mjukare, mindre klinisk.
   'precision-light': {
     id: 'precision-light',
     name: 'Precision Ljus',
     short: 'Ljus',
-    feel: 'Ljus, knivskarp yta med lugn indigo accent – Figma-ren',
+    feel: 'Ljus, varmgrå yta med lugn indigo accent – Figma-ren',
     base: 'light',
     vars: {
       ...SHARED,
-      surface: 'rgba(255, 255, 255, 0.9)',
-      'surface-2': 'rgba(244, 245, 248, 0.92)',
-      'surface-raised': '#ffffff',
-      'surface-solid': '#ffffff',
+      // V8: mer opaka wireframe-ytor → lådorna blir läsbara mot grid-bakgrunden.
+      // V11: varm off-white (R>G>B) i stället för kliniskt rent vitt.
+      // FW7/W23: sänkt ljusheten ett par steg (≈250→242 på surface-solid) till en
+      // dovare, behagligare varm off-white/ljusgrå så den inte bländar. Behåller
+      // R≥G≥B (varm) och rikligt med text-kontrast (13.7:1 mot text).
+      surface: 'rgba(244, 242, 237, 0.97)',
+      'surface-2': 'rgba(235, 232, 226, 0.97)',
+      'surface-raised': '#f4f1eb',
+      'surface-solid': '#f2efe8',
       text: '#1e2233',
       'text-dim': 'rgba(30, 34, 51, 0.66)',
       'text-mute': 'rgba(30, 34, 51, 0.42)',
@@ -131,14 +201,36 @@ export const DT_THEMES: Record<DtThemeId, DtTheme> = {
       'accent-contrast': '#ffffff',
       border: 'rgba(20, 24, 44, 0.1)',
       'border-strong': 'rgba(79, 70, 229, 0.45)',
-      shadow: '0 4px 18px rgba(24, 30, 60, 0.12)',
-      'shadow-lg': '0 20px 55px rgba(24, 30, 60, 0.2)',
+      // PW1/B1: blueprint-ritningens INK – lugn definierad stroke (mörk på ljus yta),
+      // mer läsbar än det dova `border` → precisa ritade linjer, ritbords-känsla.
+      'bp-stroke': 'rgba(30, 34, 51, 0.28)',
+      // PW1/B3: markerings-glöd – bara valt element (accent-halo), diskret men tydlig.
+      'sel-glow': '0 0 0 3px rgba(79, 70, 229, 0.16), 0 4px 16px rgba(79, 70, 229, 0.14)',
+      // R15: dovare grid-illustration (lägre kontrast än border → läser som
+      // bakgrund, inte som lådor; skiner subtilt igenom innehållet).
+      'grid-line': 'rgba(30, 34, 51, 0.08)',
+      'grid-band': 'rgba(30, 34, 51, 0.03)',
+      // V8: griden skiner igenom STARKARE – men bara TILLFÄLLIGT medan man drar.
+      'grid-line-strong': 'rgba(30, 34, 51, 0.18)',
+      'grid-band-strong': 'rgba(30, 34, 51, 0.07)',
+      // PW2/B2: mjuka LAGER-skuggor, KONSEKVENT ljuskälla uppifrån (ingen x-offset).
+      // Kontakt-skugga + ambient → tasteful djup, dov på ljust (låg alpha).
+      shadow: '0 1px 2px rgba(24, 30, 60, 0.08), 0 6px 20px rgba(24, 30, 60, 0.12)',
+      'shadow-lg': '0 2px 8px rgba(24, 30, 60, 0.10), 0 20px 55px rgba(24, 30, 60, 0.18)',
+      // PW2/B2: 1px inre HÖGDAGER överst – skarp ljus kant på ljus yta (frostat glas).
+      'inner-hi': 'inset 0 1px 0 rgba(255, 255, 255, 0.75)',
+      // PW2/B2: komposit-material (topp-högdager + lager-skugga) = ETT system-token.
+      'panel-shadow': 'inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 2px 8px rgba(24, 30, 60, 0.10), 0 20px 55px rgba(24, 30, 60, 0.18)',
+      // PW2/B5: oifyllt slider-spår (accent fyller vänster om thumben; detta är resten).
+      'track-empty': 'rgba(30, 34, 51, 0.14)',
       blur: 'blur(14px) saturate(1.05)',
       glow: '0 0 0 rgba(0,0,0,0)',
       scrim: 'rgba(30, 34, 51, 0.28)',
-      // C4: varm Spara-accent (samma i båda valörerna).
-      save: SAVE,
-      'save-contrast': SAVE_CONTRAST,
+      // FW8/W24: varnings-knappens text + linje (valör-specifik för AA på ghost-
+      // varianten). Ljus: bränd orange (samma som danger-solid) – läsbar på ljus yta
+      // (4.7:1). Solid-varianten (danger-solid) delas via SHARED.
+      'danger-text': '#b5491f',
+      'danger-line': 'rgba(181, 73, 31, 0.5)',
       // C3: hover-slöja (subtil mörkning på ljust) + ljushets-faktor.
       'hover-veil': 'rgba(20, 24, 44, 0.06)',
       'hover-bright': '0.96',
