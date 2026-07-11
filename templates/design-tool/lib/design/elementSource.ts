@@ -26,7 +26,6 @@ export interface ElementSource {
   component?: string
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Fiber = any
 
 /** Korta ned en absolut byggsökväg till projektrelativ (app/…, components/…, lib/…). */
@@ -52,7 +51,6 @@ function getFiber(el: Element): Fiber | null {
   const key = Object.keys(el).find(
     (k) => k.startsWith('__reactFiber$') || k.startsWith('__reactInternalInstance$'),
   )
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return key ? (el as any)[key] ?? null : null
 }
 
