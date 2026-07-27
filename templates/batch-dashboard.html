@@ -1,10 +1,17 @@
 <!doctype html>
 <!-- Batch live-dashboard template (webapp-kit).
-     Per batch, pick a UNIQUE localStorage key prefix and replace every "wk0000"
-     below with it (e.g. "b0708n") so a new batch starts with a clean welcome
-     screen / timer / seen-set and doesn't collide with a previous batch's state.
-     The data file it re-injects is templates/batch-dashboard-data.js (rewritten by
-     the batch process per status change); background image lives in batch-img/. -->
+     INGEN MANUELL PATCHNING BEHÖVS. Skalet härleder allt ur sitt EGET filnamn:
+     kopiera mallen till reports/<bas>.html och lägg datan i <bas>-data.js och
+     bakgrunden i <bas>-img/bg.jpg — skalet hittar dem själv, och localStorage-
+     nycklarna (välkomstskärm, klocka, "sett"-set, designnotiser) prefixas med
+     <bas> så att varje batch startar rent utan att kollidera med en tidigare.
+     (Tidigare var filnamnen hårdkodade till mallens egna, vilket gjorde att en
+     kopia med annat namn visade "Kunde inte ladda …" — och att alla batchar
+     delade LS-nycklar, så välkomstskärmen aldrig visades igen.)
+     Varje batch ska ha ett EGET basnamn — även flera batchar samma dygn
+     (`batch-<datum>-<slug>`), annars ärver den nya batchen den gamlas tillstånd.
+     Tangent B (eller knappen nere till höger) döljer dashboarden tillfälligt så
+     att bakgrundsfotot går att se i detalj. -->
 <html lang="sv">
 <head>
 <meta charset="utf-8">
@@ -16,8 +23,33 @@
   *{box-sizing:border-box}
   html,body{margin:0}
   body{min-height:100%;background:#0a120e;color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-  .bg{position:fixed;inset:0;z-index:0;background:#0a120e url("batch-img/bg.jpg") center/cover no-repeat}
-  .scrim{position:fixed;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(7,15,11,.78) 0%,rgba(7,15,11,.5) 34%,rgba(7,15,11,.2) 64%,rgba(7,15,11,.30) 100%)}
+  /* Bakgrunderna sätts av JS ur sidans basnamn (<bas>-img/bgN.jpg) – se kommentaren i toppen.
+     TVÅ lager: bilden byts på det dolda lagret och tonas in, så bytet blir en mjuk
+     övergång i stället för ett hopp. En enda .bg kan inte korsblanda med sig själv. */
+  .bg{position:fixed;inset:0;z-index:0;background:#0a120e center/cover no-repeat;transition:opacity .9s ease}
+  .bg.off{opacity:0}
+  .scrim{position:fixed;inset:0;z-index:1;background:linear-gradient(to bottom,rgba(7,15,11,.78) 0%,rgba(7,15,11,.5) 34%,rgba(7,15,11,.2) 64%,rgba(7,15,11,.30) 100%);transition:opacity .3s ease}
+  /* ── Peek-läge: titta på bakgrundsfotot utan att stänga dashboarden ──────────
+     Allt som ligger ÖVER fotot bär .peekable och tonas ut; scrimen med. Kvar står
+     bara peek-knappen, annars vet man inte hur man kommer tillbaka. */
+  .peekable{transition:opacity .3s ease}
+  html.peek .peekable{opacity:0;pointer-events:none}
+  html.peek .scrim{opacity:0}
+  .pbtn{position:fixed;right:.7em;bottom:.55em;z-index:9;font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--tx);background:#0f1f18cc;border:1px solid var(--line);border-radius:.5em;padding:.42em .8em;cursor:pointer}
+  .pbtn:hover{color:#fff;border-color:var(--tx3)}
+  html.peek .pbtn{background:#0a120e88;border-color:#ffffff40;color:#fff;text-shadow:0 1px 3px #000a}
+  /* Bildväljaren syns BARA i peek-läget: där är den enda kvarvarande kontrollen, och
+     den bär bildens kredit eftersom kreditraden längst ner är utetonad. */
+  .ppager{position:fixed;right:.7em;bottom:2.5em;z-index:9;display:none;align-items:center;gap:.55em;
+    font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;text-shadow:0 1px 3px #000c;
+    background:#0a120e88;border:1px solid #ffffff33;border-radius:.5em;padding:.34em .5em;max-width:min(46em,80vw)}
+  html.peek .ppager{display:flex}
+  .ppager button{font:700 .95em ui-monospace,Menlo,monospace;color:#fff;background:#ffffff1a;border:1px solid #ffffff33;
+    border-radius:.35em;padding:.1em .5em;cursor:pointer;line-height:1.3}
+  .ppager button:hover{background:#ffffff30}
+  .ppager .pnum{font:700 .95em ui-monospace,Menlo,monospace;white-space:nowrap}
+  .ppager .pcred{font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .page{position:relative;z-index:2;height:100vh;display:none;flex-direction:column;padding:2.6vh 0 0}
   .page.show{display:flex}
   .app{flex:1 1 auto;min-height:0;max-width:1600px;width:100%;margin:0 auto;display:flex;flex-direction:column;justify-content:flex-end;padding:0 4.4vw}
@@ -83,6 +115,14 @@
   .card.prev{box-shadow:none;border-color:#294a3d;filter:saturate(.6) contrast(.9)}
   .card.prev .ttl{text-shadow:none;color:#8fae9f}
   .card.prev .activity{text-shadow:none;color:#6f8a7d}
+  /* Per-post-mätare: klocka · tokens · agenter. Klockan tickar medan posten pågår och
+     står KVAR med sluttiden när den är klar — annars går informationen förlorad just
+     när man vill jämföra posterna med varandra. */
+  .meter{flex:none;display:inline-flex;align-items:center;gap:.42em;font:600 .62em ui-monospace,Menlo,monospace;
+    color:var(--tx3);white-space:nowrap;letter-spacing:.02em;text-shadow:0 1px 3px #000a}
+  .card.act .meter{color:var(--active)}
+  .card.done .meter{color:#7fdcb8}
+  .meter b{font-weight:700;color:inherit}
   .card.prev .pill{background:#0d2a2099;color:#6fa78e}
   .ph.prevtag{color:#6fa78e;font-weight:600}
   .welcome{position:fixed;inset:0;z-index:6;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6vh 8vw}
@@ -152,10 +192,11 @@
 </style>
 </head>
 <body>
-<div class="bg"></div>
+<div class="bg" id="bgA"></div>
+<div class="bg off" id="bgB"></div>
 <div class="scrim"></div>
 
-<div class="page" id="page">
+<div class="page peekable" id="page">
   <div class="app" id="app">
     <header>
       <span class="namebox" id="nameBox">–</span>
@@ -177,7 +218,7 @@
         <span><i class="dot" style="background:var(--test)"></i>Testar</span>
         <span><i class="dot" style="background:var(--done)"></i>Klar</span>
         <span><i class="dot" style="background:var(--block)"></i>Blockerad</span>
-        <span style="color:var(--tx3)">· kortlängd fylls med fasen · kortstorlek = jobbets storlek · <i class="camic" aria-hidden="true"></i>-ikon = har före/efter · klicka en klar post (öppnas i ny flik) · ✎ Design = rita en ruta + kommentera</span>
+        <span style="color:var(--tx3)">· kortlängd fylls med fasen · kortstorlek = jobbets storlek · <i class="camic" aria-hidden="true"></i>-ikon = har före/efter · klicka en klar post (öppnas i ny flik) · ✎ Design = rita en ruta + kommentera · <b>B</b> = visa bakgrunden</span>
       </div>
     </div>
     <div class="caption" id="caption"></div>
@@ -185,8 +226,8 @@
   </div>
 </div>
 
-<div class="report" id="report"></div>
-<div class="credit" id="credit"></div>
+<div class="report peekable" id="report"></div>
+<div class="credit peekable" id="credit"></div>
 <div class="finale" id="finale"></div>
 
 <div class="ov" id="ov"><div class="panel" id="panel"></div></div>
@@ -211,7 +252,14 @@
   <button id="dclear">Rensa</button>
   <span>Dra en ruta över ett område och kommentera. Kopiera → klistra in i chatten.</span>
 </div>
-<button class="dbtn" id="dbtn">✎ Design</button>
+<button class="dbtn peekable" id="dbtn">✎ Design</button>
+<button class="pbtn" id="pbtn">👁 Visa bakgrunden</button>
+<div class="ppager" id="ppager">
+  <button id="pprev" title="Föregående bild (←)">◂</button>
+  <span class="pnum" id="pnum">1/1</span>
+  <button id="pnext" title="Nästa bild (→)">▸</button>
+  <span class="pcred" id="pcred"></span>
+</div>
 
 <script>
 (function(){
@@ -252,6 +300,84 @@
   var page=document.getElementById("page"),wel=document.getElementById("welcome");
   var CARDS={},booted=false,pollTimer=null,D=null;
 
+  // ── Var bor mina filer? Härleds ur sidans EGET filnamn ───────────────────────
+  // Mallen kopieras till reports/<bas>.html; datan och bilden ligger bredvid som
+  // <bas>-data.js och <bas>-img/bg.jpg. Hårdkodade namn här vore en bugg som bara
+  // syns i kopian: skalet skulle leta efter MALLENS data och visa "kunde inte
+  // ladda". LS-prefixet härleds ur samma bas, så en ny batch (nytt basnamn) får
+  // egen välkomstskärm, egen klocka och eget "sett"-set utan manuell patchning.
+  var BASE=((location.pathname.split("/").pop()||"").replace(/\.html?$/i,""))||"batch-dashboard";
+  var DATA_SRC=BASE+"-data.js", IMG_DIR=BASE+"-img", LS=BASE+":";
+
+  // ── Bakgrunderna: flera per batch, cyklas under körningen ────────────────────
+  // `bgImages` i datafilen är antingen strängar ("bg1.jpg") eller {file,credit}.
+  // Saknas fältet faller vi tillbaka på en enda bg.jpg (äldre batchar). Bilderna
+  // ligger i <bas>-img/ och krediteras per bild — annars vore krediteringen en
+  // uppgift om en annan bild än den man ser.
+  var BGS=[],bgIx=0,bgLayer=0,bgTimer=null;
+  var bgEls=[document.getElementById("bgA"),document.getElementById("bgB")];
+  var pnum=document.getElementById("pnum"),pcred=document.getElementById("pcred");
+  var BG_CYCLE_MS=45000;
+  function normBgs(D){
+    var raw=(D&&D.bgImages&&D.bgImages.length)?D.bgImages:["bg.jpg"];
+    return raw.map(function(x){
+      var f=(typeof x==="string")?x:(x&&x.file);
+      var c=(typeof x==="string")?"":((x&&x.credit)||"");
+      return {file:f,credit:c||(D&&D.bgCredit)||""};
+    }).filter(function(x){return !!x.file;});
+  }
+  function showBg(i,instant){
+    if(!BGS.length)return;
+    bgIx=((i%BGS.length)+BGS.length)%BGS.length;
+    var b=BGS[bgIx],next=instant?bgLayer:(1-bgLayer);
+    bgEls[next].style.backgroundImage='url("'+IMG_DIR+'/'+b.file+'")';
+    if(!instant){bgEls[next].classList.remove("off");bgEls[bgLayer].classList.add("off");bgLayer=next;}
+    pnum.textContent=(bgIx+1)+"/"+BGS.length;
+    pcred.textContent=b.credit||"";
+    var cr=document.getElementById("credit");
+    if(cr)cr.textContent=b.credit||"";
+  }
+  function stepBg(d){showBg(bgIx+d);restartCycle();}
+  function restartCycle(){
+    if(bgTimer){clearInterval(bgTimer);bgTimer=null;}
+    // Ingen cykling när det bara finns en bild, och inte medan man tittar på en
+    // bild i peek-läget – då är bytet något användaren själv styr.
+    if(BGS.length>1&&!peeking)bgTimer=setInterval(function(){showBg(bgIx+1)},BG_CYCLE_MS);
+  }
+  function initBgs(D){
+    var next=normBgs(D),sig=JSON.stringify(next);
+    if(sig===JSON.stringify(BGS))return;      // oförändrat → rör inte pågående cykel
+    BGS=next;bgIx=0;showBg(0,true);restartCycle();
+  }
+
+  // ── Peek: dölj dashboarden tillfälligt och titta på bakgrundsfotot ───────────
+  // Progressbarerna gör fotot svårt att se i detalj under körning. B (eller
+  // knappen) tonar ut allt utom peek-knappen och bildväljaren; ← → stegar mellan
+  // batchens bilder, Esc/B/klick tar tillbaka vyn. Ändrar ingenting i datan.
+  var pbtn=document.getElementById("pbtn"),peeking=false;
+  function setPeek(on){
+    peeking=on;document.documentElement.classList.toggle("peek",on);
+    pbtn.textContent=on?"◂ Tillbaka till dashboarden":"👁 Visa bakgrunden";
+    pbtn.title=on?"Esc, B eller klick var som helst → tillbaka · ← → byter bild":"Tangent: B";
+    restartCycle();
+  }
+  pbtn.onclick=function(){setPeek(!peeking);};
+  document.getElementById("pprev").onclick=function(e){e.stopPropagation();stepBg(-1);};
+  document.getElementById("pnext").onclick=function(e){e.stopPropagation();stepBg(1);};
+  addEventListener("keydown",function(e){
+    if(e.target&&/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;
+    if(e.key==="b"||e.key==="B"){setPeek(!peeking);}
+    else if(e.key==="Escape"&&peeking){setPeek(false);}
+    else if(e.key==="ArrowRight"){stepBg(1);}
+    else if(e.key==="ArrowLeft"){stepBg(-1);}
+  });
+  addEventListener("pointerdown",function(e){
+    if(!peeking)return;
+    // Knappen och bildväljaren sköter sig själva – ett klick där ska inte stänga peek.
+    if(e.target&&e.target.closest&&e.target.closest(".pbtn,.ppager"))return;
+    setPeek(false);
+  },true);
+
   // ── Sound: a little "plop" per flower in the finale (WebAudio; started on first gesture) ──
   var actx=null;
   function ensureAudio(){try{if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();if(actx.state==="suspended")actx.resume();}catch(e){}}
@@ -277,27 +403,66 @@
   function renderChrome(){
     var doneN=D.items.filter(function(i){return i.phase==="done"}).length;
     document.getElementById("progbar").style.width=Math.round(doneN/D.items.length*100)+"%";
-    document.getElementById("sub").textContent=doneN+" av "+D.items.length+" klara";
+    var tot=totalTokens();
+    document.getElementById("sub").textContent=doneN+" av "+D.items.length+" klara"
+      +(tot?(" · "+(tot>=1e6?((tot/1e6).toFixed(1)+" M"):(Math.round(tot/1000)+"k"))+" tokens"):"");
     document.getElementById("caption").innerHTML=D.bgCaption||"";
     var s=ST[D.status]||ST.paused;
     document.getElementById("statusBadge").className="status "+s[1]+(D.status==="running"?" pulse":"");
     document.getElementById("statusTxt").textContent=s[0];
     document.getElementById("nameBox").textContent=D.name||"Batchjobb";
-    document.getElementById("credit").textContent=D.bgCredit||"";
+    // Krediteringen sätts av showBg() – den gäller den bild som faktiskt visas,
+    // inte batchen som helhet (flera bilder per batch, se initBgs).
+    initBgs(D);
   }
 
   function fmtDur(ms){var s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h+"h "+m+"m";}
   function tick(){
-    var start=localStorage.getItem("wk0000start"),el=document.getElementById("timer");
-    if(D.status==="running"&&!start){start=Date.now().toString();localStorage.setItem("wk0000start",start);}
+    if(D&&D.items)tickKlockor();
+    var start=localStorage.getItem(LS+"start"),el=document.getElementById("timer");
+    if(D.status==="running"&&!start){start=Date.now().toString();localStorage.setItem(LS+"start",start);}
     if(!start){el.textContent="Starttid registreras när batchen körs";return;}
     var st=new Date(parseInt(start)),end;
-    if(D.status==="running"){end=Date.now();localStorage.setItem("wk0000frozen",end.toString());}
-    else{end=parseInt(localStorage.getItem("wk0000frozen")||Date.now().toString());}
+    if(D.status==="running"){end=Date.now();localStorage.setItem(LS+"frozen",end.toString());}
+    else{end=parseInt(localStorage.getItem(LS+"frozen")||Date.now().toString());}
     el.textContent="Startad "+st.toLocaleTimeString("sv-SE",{hour:"2-digit",minute:"2-digit"})+" · körtid "+fmtDur(end-st.getTime());
   }
 
-  function cardSig(it,prev){return [it.phase,it.size,it.activity||"",it.note||"",it.before||"",it.after||"",prev?1:0].join("|");}
+  // ── Per-post-mätare ────────────────────────────────────────────────────────
+  // Tre tal per post, alla frivilliga: klocka (t0/t1), tokens och antal subagenter.
+  // Saknas de renderas ingenting — en äldre batch ska inte visa tomma fält.
+  // Klockan för en PÅGÅENDE post uppdateras av tick() utan att kortet byggs om, så
+  // att öppna popups och scroll står stilla (samma skäl som den asymmetriska
+  // in-place-uppdateringen finns för).
+  function mätKlocka(it,nu){
+    if(typeof it.t0!=="number")return "";
+    var slut=(typeof it.t1==="number"&&it.t1>=it.t0)?it.t1:(it.phase==="done"?it.t0:nu);
+    var m=Math.max(0,Math.round((slut-it.t0)/60000));
+    return m<60?(m+"m"):(Math.floor(m/60)+"h "+(m%60)+"m");
+  }
+  function mätTok(n){return n==null?"":(n>=1000?(Math.round(n/1000)+"k"):(""+n));}
+  function mätare(it){
+    var nu=Date.now(),delar=[],kl=mätKlocka(it,nu);
+    if(kl)delar.push('<span class="mklocka" data-id="'+esc(it.id)+'">'+kl+'</span>');
+    if(it.tokens!=null)delar.push('<b>'+mätTok(it.tokens)+'</b>');
+    if(it.subagenter!=null)delar.push(it.subagenter+(it.subagenter===1?" agent":" agenter"));
+    if(!delar.length)return "";
+    return '<span class="meter" title="körtid · tokens · subagenter">'+delar.join(" · ")+'</span>';
+  }
+  // Bara klocktexten skrivs om, inte kortet.
+  function tickKlockor(){
+    var nu=Date.now();
+    (D.items||[]).forEach(function(it){
+      if(it.phase==="done"||typeof it.t0!=="number")return;
+      var el=document.querySelector('.mklocka[data-id="'+(it.id+"").replace(/"/g,'')+'"]');
+      if(el)el.textContent=mätKlocka(it,nu);
+    });
+  }
+  function totalTokens(){
+    return (D.items||[]).reduce(function(a,i){return a+(typeof i.tokens==="number"?i.tokens:0)},0);
+  }
+  function cardSig(it,prev){return [it.phase,it.size,it.activity||"",it.note||"",it.before||"",it.after||"",prev?1:0,
+    it.t0||"",it.t1||"",it.tokens||"",it.subagenter||""].join("|");}
   function buildCard(c,it,prev){
     var ph=PH[it.phase],col=ph[1];
     c.className="card "+(it.size||"liten")+(it.phase==="done"?" done":"")+(it.phase==="input"?" needinput":"")+(it.phase==="active"?" act":"")+(prev?" prev":"");
@@ -313,12 +478,12 @@
     }else{right='<span class="ph" style="color:'+col+'">'+ph[0]+'</span>';}
     var imgic=(it.phase==="done"&&(it.before||it.after))?'<span class="imgic" title="Har före/efter-bilder – klicka (ny flik)"><i class="camic"></i></span>':'';
     var actTxt=(it.phase!=="done"&&it.phase!=="waiting"&&it.activity)?it.activity:"";
-    c.innerHTML=fill+spill+'<div class="top"><span class="pill">'+esc(it.id)+'</span>'+imgic+'<span class="ttl">'+esc(it.t)+'</span><span class="activity">'+esc(actTxt)+'</span>'+right+'</div>';
+    c.innerHTML=fill+spill+'<div class="top"><span class="pill">'+esc(it.id)+'</span>'+imgic+'<span class="ttl">'+esc(it.t)+'</span><span class="activity">'+esc(actTxt)+'</span>'+mätare(it)+right+'</div>';
     c.onclick=it.phase==="done"?function(){window.open(location.pathname+"?task="+it.id,"_blank");}
       :it.phase==="input"?function(){openInput(it)}:null;
   }
   function renderGrid(){
-    var seen=JSON.parse(localStorage.getItem("wk0000seen")||"[]"),nowSeen=seen.slice();
+    var seen=JSON.parse(localStorage.getItem(LS+"seen")||"[]"),nowSeen=seen.slice();
     D.items.forEach(function(it){
       var prev=it.phase==="done"&&(D.prevDone||[]).indexOf(it.id)>=0;
       var sig=cardSig(it,prev),rec=CARDS[it.id];
@@ -327,7 +492,7 @@
       // One-time celebration when a NEW (not previous pass's) item becomes done: pop + flowers grow in one by one.
       if(it.phase==="done"&&!prev&&seen.indexOf(it.id)<0){rec.el.classList.add("pop");rec.el.classList.add("fresh");if(nowSeen.indexOf(it.id)<0)nowSeen.push(it.id);}
     });
-    localStorage.setItem("wk0000seen",JSON.stringify(nowSeen));
+    localStorage.setItem(LS+"seen",JSON.stringify(nowSeen));
     fit();
   }
 
@@ -340,10 +505,10 @@
 
   // ── Whole-batch celebration – 100 flowers along the edges, one by one, with a plop ──
   function celebrate(){
-    if(localStorage.getItem("wk0000fin"))return;
+    if(localStorage.getItem(LS+"fin"))return;
     var allDone=D.items.length&&D.items.every(function(i){return i.phase==="done"});
     if(!(allDone&&D.status==="done"))return;
-    localStorage.setItem("wk0000fin","1");
+    localStorage.setItem(LS+"fin","1");
     ensureAudio();
     var f=document.getElementById("finale");f.classList.add("show");
     var N=100,rf=rng(1234567);
@@ -381,9 +546,9 @@
   ov.onclick=function(e){if(e.target===ov)ov.classList.remove("show")};
 
   // ── Design tool on the dashboard (draw box + comment → copy-paste) ──
-  var dmode=false,dnotes=JSON.parse(localStorage.getItem("wk0000notes")||"[]"),draw=null;
+  var dmode=false,dnotes=JSON.parse(localStorage.getItem(LS+"notes")||"[]"),draw=null;
   var dbtn=document.getElementById("dbtn"),dbar=document.getElementById("dbar"),dlayer=document.getElementById("dlayer"),dmarks=document.getElementById("dmarks");
-  function saveNotes(){localStorage.setItem("wk0000notes",JSON.stringify(dnotes));renderMarks();}
+  function saveNotes(){localStorage.setItem(LS+"notes",JSON.stringify(dnotes));renderMarks();}
   function renderMarks(){
     dmarks.innerHTML="";
     dnotes.forEach(function(n,idx){
@@ -442,12 +607,12 @@
 
   function loadData(bust){
     var sc=document.createElement("script");
-    sc.src="batch-dashboard-data.js"+(bust?("?t="+Date.now()):"");
+    sc.src=DATA_SRC+(bust?("?t="+Date.now()):"");
     sc.onload=function(){sc.parentNode&&sc.parentNode.removeChild(sc);};
     sc.onerror=function(){
       sc.parentNode&&sc.parentNode.removeChild(sc);
       if(!booted&&bust){loadData(false);}
-      else if(!booted){document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:16px sans-serif;background:#0a120e">Kunde inte ladda batch-dashboard-data.js</div>');}
+      else if(!booted){document.body.insertAdjacentHTML("beforeend",'<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:16px sans-serif;background:#0a120e">Kunde inte ladda '+DATA_SRC+'</div>');}
     };
     document.body.appendChild(sc);
   }
@@ -520,7 +685,7 @@
 
   function showDash(){page.classList.add("show");document.getElementById("report").classList.add("show");wel.classList.remove("show");fit();}
   function firstShow(){
-    var welKey="wk0000wel_"+(D.bgId||"x");
+    var welKey=LS+"wel_"+(D.bgId||"x");
     if(TASK){return;}
     if(localStorage.getItem(welKey)){showDash();return;}
     document.getElementById("welFlower").innerHTML=fl(FLW[1],"1.1em",0);

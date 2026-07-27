@@ -31,18 +31,36 @@ Innan något jobb påbörjas:
 
 **Körmotor (standard, inget separat val):** driv körningen med `long-run`-spelboken — **en subagent (`batch-worker`) per post** i eget context så huvudloopen hålls lätt och context-fönstret sparas. Sekventiellt för fil-rörande poster (undvik krock), parallellt för read-only research/audit; huvudloopen committar per klar post. Detta är default så fort en batch startas ("starta batchjobb") — användaren behöver **inte** be om subagenter separat. Läs `long-run`-skillen för tiers A/B, adversariell verifiering och circuit-breaker. (Undantag: en pytteliten batch som uppenbart ryms i ett context-fönster kan köras inline — men vid minsta tvekan, subagenter.)
 
-Kopiera mallen till batchen och driv den under hela körningen:
+Kopiera mallen till batchen och driv den under hela körningen. **Basnamnet måste vara unikt per batch — även flera batchar samma dygn** (`batch-<datum>-<kort-slug>`, t.ex. `batch-2026-07-26-ui`); skalet härleder datafil, bildkatalog OCH sina localStorage-nycklar ur basnamnet, så ett återanvänt namn ärver den förra batchens välkomstskärm, klocka och "sett"-set:
 ```
-cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard.html reports/batch-<datum>.html
-cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/batch-<datum>-data.js
+BAS=batch-<datum>-<slug>
+cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard.html reports/$BAS.html
+cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/$BAS-data.js
 ```
+**Ingen strängpatchning inuti HTML:en behövs** (och ska inte göras): mallen läser `<bas>-data.js` och `<bas>-img/bg.jpg` ur sitt eget filnamn. Öppna dashboarden själv en gång innan du ger länken och se att korten renderar — en trasig dashboard ser ut som en trasig batch.
+- **Allt personligt är per BATCH, aldrig per dygn:** nytt `name`, ny `nameWhy`, nytt `saying`, nya bakgrundsbilder och ett `bgId` som är unikt för batchen (använd basnamnet). Kör man två batchar samma dag ska de kännas som två olika jobb — samma namn eller samma foto två gånger är en bugg, inte en stilfråga.
+- **Namn och foton får aldrig gå igen — det vaktas av en durabel logg**, `docs/batch-historik.json` (git-spårad, liten):
+  ```json
+  { "namn": ["Operation Grundplåt", "Operation Snåla"], "bilder": ["File:…jpg"] }
+  ```
+  **Läs `namn` innan du döper batchen** och välj något som inte står där; lägg till det nya namnet när batchen startar. `bilder` skrivs av `batch-bg.py` självt när `--ledger` pekas dit, och redan använda foton filtreras bort ur sökträffarna. Finns filen inte: skapa den. (Utan logg upprepas fotot tyst — det var precis vad som hände i fyra batchar i rad innan loggen fanns.)
 - **Välkomst-skärmen (sätt ALLTID tre fält):** ge batchen ett `name` (visas i header + som "Välkommen till «name»"), en `nameWhy` (en rad om **varför** namnet valdes) och ett `saying` (ett passande talesätt med glimten i ögat, visas i citat). Utelämna dem inte — de driver välkomst-flashen och gör starten personlig.
 - **En skärm utan skroll:** alla valda poster som kompakta statuskort i ett rutnät, var och en med sin **fas** — ⚪ Väntar · 🔵 Startar · 🟡 Pågår · 🟣 Testar · 🟢 Klar · 🔴 Blockerad — plus en total-mätare (X/N klara). **Sätt fasen löpande** (startar→pågår→testar→klar), inte bara vid klart, så mellanstegen syns.
 - **Asymmetrisk in-place-uppdatering:** data bor i `-data.js` som anropar en renderar-callback (JSONP-mönster). HTML-skalet re-injicerar skriptet var ~6:e s och patchar bara kort vars data ändrats — scroll och öppna popups står stilla. Skriv om `-data.js` (inte HTML-skalet) vid varje statusändring. Poll är på **endast** när `status:"running"`.
 - **HTML-escapa ALL task-text** (titlar/noter/aktivitet/frågor/testfall) — de innehåller ofta literal kod (`<Link>`, `<div>`); utan escaping korrumperas DOM:en och efterföljande kort blir osynliga. Verifiera **visibilitet**, inte bara DOM-nodantal.
 - **Live-statustext** (`activity`, kursiv, lägre kontrast) på pågående kort — stora poster kan ta 20–30 min utan att något syns; uppdatera vid varje meningsfullt delsteg (~2–4 min), töm vid klart.
 - **"Kräver din input"-läge:** en post som halvvägs visar sig inte kunna slutföras autonomt → sätt `phase:"input"` + `question`. **Halta inte hela batchen** — fortsätt med andra autonoma poster medan du väntar, väv in svaret när det kommer.
-- **Bakgrundsfoto** (valfritt, trevligt): `${CLAUDE_PLUGIN_ROOT}/bin/batch-bg.py "<sökfras>" reports/batch-<datum>-img/bg.jpg` (nyckelfritt, returnerar attribution → kreditera diskret).
+- **Bakgrundsfoton — 5–7 per batch, som dashboarden cyklar mellan:**
+  ```
+  ${CLAUDE_PLUGIN_ROOT}/bin/batch-bg.py "<sökfras>" reports/$BAS-img/bg.jpg \
+      --count 6 --seed $BAS --ledger docs/batch-historik.json
+  ```
+  Skriptet skriver `bg1.jpg … bgN.jpg` och returnerar attribution **per bild**. Lägg dem i datafilen som `bgImages` — en post per bild, med sin egen kredit, eftersom en gemensam kreditrad annars beskriver en annan bild än den som visas:
+  ```js
+  "bgImages": [ {"file":"bg1.jpg","credit":"Fotograf, «Titel» · Wikimedia Commons (CC BY 2.0)"}, … ]
+  ```
+  Hittas färre bra träffar än `--count` tar skriptet de som finns (svaret bär `wanted` kontra `got`) — hitta inte på fler. `--seed $BAS` gör urvalet reproducerbart vid omkörning; `--index N` bläddrar manuellt om temat blev fel. `bgCredit` behålls som fallback för äldre batchar utan `bgImages`.
+- **Peek-läget finns — nämn det i legenden/rapporten:** tangent **B** eller knappen nere till höger tonar bort dashboarden så fotot går att se i detalj, **← → stegar mellan batchens bilder** (auto-cykeln pausas medan man tittar), och Esc, B igen eller ett klick tar tillbaka vyn.
 - **Öppna helst över `http://localhost`** (kör `python3 -m http.server` i `reports/`) — `file://` gör att webbläsaren kan återanvända gammalt HTML utan att läsa om från disk.
 - **Före/efter på GUI-poster:** fånga "före" **innan** du redigerar; fyll `before`/`after` (base64) när posten blir klar → kamera-chip dyker upp på kortet, detaljvyn öppnas i ny flik. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py`.
 
@@ -52,11 +70,11 @@ cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/batch-<datum>
 - Varje fixad bugg får ett regressionstest.
 
 ## Gren & commits
-- Batch-arbete går på en **egen gren** `batch/<datum>` — aldrig direkt på huvudgrenen.
+- Batch-arbete går på en **egen gren** `batch/<datum>` (flera samma dag: `batch/<datum>-<slug>`) — aldrig direkt på huvudgrenen.
 - **Committa varje klar våg** innan sessionen slutar (skyddar mot förlorad ocommittad diff mellan sessioner). Commit-meddelandet listar posterna + "tester gröna". Kör aldrig `git push` utan uttryckligt ok.
 
 ## Resume över sessioner
-En stor batch ryms sällan i ett context-fönster. Tillståndet ligger **på disk**: dashboarden (`-data.js`) bär per-post-status, git-trädet bär koden, och en `reports/batch-<datum>-state.md` bär scope-beslut/defaults/körordning + "så här återupptar du". En ny session läser dessa + nästa `waiting`-post och fortsätter utan att fråga om igen. Trigger: "fortsätt batchjobbet".
+En stor batch ryms sällan i ett context-fönster. Tillståndet ligger **på disk**: dashboarden (`-data.js`) bär per-post-status, git-trädet bär koden, och en `reports/$BAS-state.md` bär scope-beslut/defaults/körordning + "så här återupptar du". En ny session läser dessa + nästa `waiting`-post och fortsätter utan att fråga om igen. Trigger: "fortsätt batchjobbet".
 
 ## Fånga per-post-timing + tokens (för retrospektiven)
 Genom hela körningen: **stämpla `t0` (epoch ms) på varje post när den startar** (`date +%s%3N`), och när

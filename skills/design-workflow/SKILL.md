@@ -4,6 +4,8 @@ description: Token-driven pipeline for designing a new web view or app with Clau
 
 # Design-workflow
 
+> **Ska något RITAS** — en illustration, figur, ritning, symbol eller SVG-scen — gäller `illustrate`-skillen: fem steg med granskningsloop mot korrekthet, tydlighet och skönhet, och per-agent före helhet när flera ritar delar av samma bild.
+
 Så designar du och strukturerar webbapp-UI när du bygger med Claude Code. Token-drivet: allt hänger på ett token-lager (CSS-variabler), så omtematisering = byt token-värden. För ren finjustering (pixlar/färg/spacing på en redan byggd vy), använd `visual-iterate`-skillen istället.
 
 ## Pipelinen (ny app eller ny vy)
