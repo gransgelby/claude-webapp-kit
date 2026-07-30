@@ -1,6 +1,6 @@
 <h2 class="sr-only">Urvalswidget för batchen: en rad per backlog-post med läge (ja, nej, reserv) och prioritet (hög, med, låg), ett kommentarsfält och en knapp som ber om ett ordningsförslag.</h2>
 <style>
-.uw{--uw-hi-bg:#D85A30;--uw-hi-fg:#FAECE7;--uw-mid-bg:#EF9F27;--uw-mid-fg:#412402;--uw-lo-bg:#FAEEDA;--uw-lo-fg:#633806;--uw-kol:150px 14px 38px minmax(0,1fr) auto 162px;padding:.25rem 0 .5rem;font-size:14px}
+.uw{--uw-kol:164px 14px 38px minmax(0,1fr) auto 172px;padding:.25rem 0 .5rem;font-size:14px}
 .uw-leg{display:flex;gap:18px;align-items:center;font-size:13px;color:var(--text-secondary);padding-bottom:12px}
 .uw-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px;vertical-align:1px}
 .uw-hd,.uw-row{display:grid;grid-template-columns:var(--uw-kol);align-items:center;gap:9px}
@@ -11,24 +11,11 @@
 .uw-i{font-size:12px;color:var(--text-muted);text-align:right}
 .uw-av .uw-t{color:var(--text-muted);font-weight:400}
 .uw-av .uw-id,.uw-av .uw-i{opacity:.6}
-.uw-seg{display:flex;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.uw-seg button{flex:1;min-width:0;border:0;border-left:0.5px solid var(--border);border-radius:0;background:transparent;color:var(--text-muted);font-size:12px;font-weight:400;padding:5px 2px;transition:none}
-.uw-seg button:first-child{border-left:0}
-.uw-seg button:hover{background:var(--fill-ghost-hover);color:var(--text-secondary)}
-.uw-seg button[aria-pressed=true]{font-weight:500}
-.uw-seg button[data-v=ja][aria-pressed=true]{background:var(--fill-accent);color:var(--on-accent)}
-.uw-seg button[data-v=reserv][aria-pressed=true]{background:var(--uw-mid-bg);color:var(--uw-mid-fg)}
-.uw-seg button[data-v=nej][aria-pressed=true]{background:var(--fill-control);color:var(--text-primary)}
-.uw-seg button[data-v=hög][aria-pressed=true]{background:var(--uw-hi-bg);color:var(--uw-hi-fg)}
-.uw-seg button[data-v=med][aria-pressed=true]{background:var(--uw-mid-bg);color:var(--uw-mid-fg)}
-.uw-seg button[data-v=låg][aria-pressed=true]{background:var(--uw-lo-bg);color:var(--uw-lo-fg)}
 .uw-hjalp{font-size:12px;color:var(--text-muted);border-top:0.5px solid var(--border);padding-top:9px;margin-top:0}
 .uw-lbl{display:block;font-size:13px;color:var(--text-secondary);margin:1rem 0 6px}
 .uw textarea{width:100%;font-family:var(--font-sans);font-size:14px}
 .uw-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px}
 .uw-rakn{font-size:13px;color:var(--text-secondary)}
-.uw-go{background:var(--fill-accent);color:var(--on-accent);border:0;border-radius:var(--radius);font-size:14px;font-weight:500;padding:9px 18px}
-.uw-go:hover{background:var(--fill-accent-hover)}
 </style>
 <div class="uw">
   <div class="uw-leg">
@@ -43,7 +30,7 @@
   <textarea id="uw-komm" rows="3" placeholder="T.ex.: I36 är viktigare än du tror, och varför är B5 inte med?"></textarea>
   <div class="uw-foot">
     <span class="uw-rakn" id="uw-rakn"></span>
-    <button class="uw-go" id="uw-go">Föreslå körordning</button>
+    <button id="uw-go" style="background:var(--fill-accent)!important;color:var(--on-accent)!important;border:0!important;border-radius:var(--radius)!important;font-size:14px!important;font-weight:500!important;padding:9px 18px!important;box-shadow:none!important">Föreslå körordning</button>
   </div>
 </div>
 <script>
@@ -56,9 +43,16 @@ const POSTER = [
 const UW_DOT={auto:"#97C459","frågor":"#EF9F27",dig:"#E24B4A"};
 const UW_LÄGE=[["ja","Ja"],["nej","Nej"],["reserv","Reserv"]];
 const UW_PRIO=[["hög","Hög"],["med","Med"],["låg","Låg"]];
+const UW_PÅ={ja:["var(--fill-accent)","var(--on-accent)"],nej:["var(--fill-control)","var(--text-primary)"],reserv:["#EF9F27","#412402"],"hög":["#D85A30","#FAECE7"],med:["#EF9F27","#412402"],"låg":["#FAEEDA","#633806"]};
+const UW_BAS="flex:1;min-width:0;border:0!important;border-radius:0!important;box-shadow:none!important;padding:6px 2px!important;font-size:12px!important;line-height:1.35;letter-spacing:0;";
 const uwLista=document.getElementById("uw-lista");
 function uwSeg(o,f,alt){
- return `<span class="uw-seg">`+alt.map(([v,n])=>`<button data-id="${o.id}" data-f="${f}" data-v="${v}" aria-pressed="${o[f]===v}">${n}</button>`).join("")+`</span>`;
+ return `<span style="display:flex;border:0.5px solid var(--border);border-radius:var(--radius);overflow:hidden">`+alt.map(([v,n],k)=>{
+  const på=o[f]===v;
+  const st=UW_BAS+(k?"border-left:0.5px solid var(--border)!important;":"")
+   +(på?`background:${UW_PÅ[v][0]}!important;color:${UW_PÅ[v][1]}!important;font-weight:500!important;`:"background:transparent!important;color:var(--text-muted)!important;font-weight:400!important;");
+  return `<button data-id="${o.id}" data-f="${f}" data-v="${v}" aria-pressed="${på}" style="${st}">${n}</button>`;
+ }).join("")+`</span>`;
 }
 function uwRita(){
  uwLista.innerHTML=POSTER.map(o=>`<div class="uw-row${o.läge==="nej"?" uw-av":""}">

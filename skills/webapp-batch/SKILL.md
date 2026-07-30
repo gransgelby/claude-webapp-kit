@@ -28,6 +28,12 @@ skicka hela innehållet som `widget_code` till `mcp__visualize__show_widget`:
    Håll `titel` kort (~40 tecken): raden är enradig och klipps med ellips. Skälet till en post hör
    hemma i chatten, inte i widgeten.
 
+**Städa inte in knapparnas inline-stilar i `<style>`-blocket.** De ligger inline med `!important`
+därför att värdens egen knappstil annars vinner: första utkastet stylade knapparna via klasser, och
+resultatet blev att *inget markerat läge syntes alls* och segmentkontrollen föll isär i tre lösa
+knappar där "Reserv" klipptes till "Rese". Layoutreglerna i `<style>` går igenom — knappreglerna gör
+det inte.
+
 Förvalen du sätter i `läge`/`prio` är ditt förslag; användaren ändrar dem i widgeten. Rör du
 mallens *utseende* — färger, kolumner, interaktion — är det ett designbeslut som ska tas med
 användaren, inte en frihet per session. Listan nedan är alltså **specen mallen redan uppfyller**,
