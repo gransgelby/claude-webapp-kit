@@ -16,7 +16,23 @@ Standard-arbetssättet för större jobb (flera backlog-poster på en gång, ell
 Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin-verktyg, en inkorg, öppna GitHub-issues): hämta de **ohanterade** posterna först och väv in dem som backlog-kandidater i widgeten, så feedback som lämnats någon annanstans aldrig missas. Saknas ett sådant ställe: hoppa steget.
 
 ## Steg 1 — Backlog som interaktiv widget
-Läs projektets backlog-fil och visa den som en interaktiv widget (`mcp__visualize__show_widget`). Varje post har:
+
+**Utseendet är avgjort och ska INTE ritas om från beskrivningen nedan — det finns en mall:**
+`${CLAUDE_PLUGIN_ROOT}/templates/batch-urvalswidget.html`. Läs filen, byt ut **två** saker och
+skicka hela innehållet som `widget_code` till `mcp__visualize__show_widget`:
+
+1. `const BATCH = "BATCHNAMN";` → batchens namn (används i `sendPrompt`-texten).
+2. Allt mellan `const POSTER = [` och den avslutande `];` → batchens egna poster, en rad var:
+   `{id, titel, autonomi:"auto"|"frågor"|"dig", insats:"låg"|"medel"|"stor", läge:"ja"|"reserv"|"nej", prio:"hög"|"med"|"låg"}`.
+   Ordningen i arrayen är den som visas — sortera **inte** om vid klick, raden ska stå still under fingret.
+   Håll `titel` kort (~40 tecken): raden är enradig och klipps med ellips. Skälet till en post hör
+   hemma i chatten, inte i widgeten.
+
+Förvalen du sätter i `läge`/`prio` är ditt förslag; användaren ändrar dem i widgeten. Rör du
+mallens *utseende* — färger, kolumner, interaktion — är det ett designbeslut som ska tas med
+användaren, inte en frihet per session. Listan nedan är alltså **specen mallen redan uppfyller**,
+kvar som facit om mallen måste byggas om.
+
 **Rollfördelningen som widgeten ska spegla: användaren äger VÄRDET, du äger MEKANIKEN.** Vilka poster som är viktiga är användarens bedömning. I vilken ordning de ska köras är din — den följer av atomicitet, beroenden och avbrottsrisk (se `long-run`, *Körordning*), och det är kunskap användaren inte ska behöva hålla i huvudet. Låt därför **inte** widgeten be om körordning.
 
 - **Läge per post — Med / Reserv / Nej**, inte en kryssruta. *Reserv* betyder *"tas in bara om batchen blir oväntat klar tidigt"* och är hela mekanismen bakom `long-run`s reservlista — den måste kunna sättas **här**, medan användaren är vaken, annars finns inget förhandsgodkännande att luta sig mot kl. 04. Fyll reservbänken med **små, mjukt degraderande och 🟢 autonoma** poster: de körs sist, alltså när avbrottsrisken är störst, och ingen är vaken att svara på en fråga.
