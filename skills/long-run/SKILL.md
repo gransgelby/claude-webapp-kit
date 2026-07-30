@@ -34,6 +34,37 @@ del är **ogjord**, och det ska bokföras som det (se nedan).
 som blev godkänd. Skriv in de överhoppade delarna i backloggen med namn, så att nästa
 session ser att loopen inte är fullbordad.
 
+## Körordning — det som förlorar mest vid ett avbrott går först
+
+Avbrottsrisken (slut kvot, kraschad agent, stängd session) är ungefär jämnt fördelad
+över passet, men **förlusten** är det inte: den är proportionell mot hur mycket
+ocommittat arbete som är i luften när det smäller. En subagents context dör med den.
+
+Sortera därför posterna efter **hur mycket som går förlorat om de avbryts i ett
+slumpmässigt ögonblick** — och notera att det är *atomicitet*, inte storlek, som är den
+egentliga variabeln. Storlek korrelerar bara med den:
+
+- **Först:** poster som måste landa hela för att vara värda något — refaktoriseringar,
+  omskrivningar som rör många filer, allt där halvvägs är värdelöst.
+- **Sist:** poster som **degraderar mjukt** — granskningar och utredningar som skriver
+  sina fynd till disk löpande (se verifierar-steget ovan) förlorar nästan ingenting
+  oavsett när de dör, och små avgränsade fixar kostar lite att göra om.
+
+Två saker slår över regeln:
+
+1. **Beroendeordning vinner alltid.** En liten post som låser upp tre stora ska ligga
+   först även om den är liten. (Verklig regel ur ett projekt: *modellen före bilden,
+   kravtexten före ritandet* — bilden följer modellen, aldrig tvärtom.)
+2. **Stora poster har högre varians.** Startar du det största jobbet först och det äter
+   60 % av budgeten sitter du med *en* klar sak i stället för fem. Regeln gäller
+   avbrottsrisk, inte "satsa allt på det största först" — bedöm att posten **ryms**
+   innan du lägger den överst.
+
+Den starkaste åtgärden är dock inte ordningen utan att **göra stora poster
+checkpointade**: committa per delsteg, håll verify grön efter varje, skriv ned fynd före
+åtgärd. En stor post som checkpointar internt är nästan lika billig att avbryta som en
+liten — och då spelar ordningen mindre roll.
+
 ## Två tiers
 - **Tier A — auto-verifierade (klart över natten):** subagenten gör jobbet och verifierar (projektets test/verify-kommando grönt / a11y-lint grön / rapport-fil finns) → huvudloopen **committar**. Klar utan människa.
 - **Tier B — förslags-utkast (väntar sign-off):** subagenten bygger + self-verifierar (typecheck + tester + demo renderar utan fel + fångar **före/efter** via skärmdump) → committa → markera i dashboarden som **"väntar din sign-off"**. Verifiera **inte** interaktivt — det gör människan på morgonen.
