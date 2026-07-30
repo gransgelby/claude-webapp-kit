@@ -214,6 +214,16 @@ def main():
             st += " · senast: " + kapa(senast, BREDD - 12 - len(st))
         ut.append(rad(kapa(st, BREDD - 4)))
     ut.append("└" + "─" * (BREDD - 2) + "┘")
+    # En SessionStart-hook skriver till Claudes KONTEXT, inte till chatten — användaren
+    # ser alltså ingenting av det här av sig själv. Kortet är beställt för chattflödet,
+    # så hooken ber uttryckligen om att det återges. Instruktionen står efter kortet så
+    # att den inte råkar följa med när kortet kopieras.
+    ut.append("")
+    ut.append("[projektkort] Återge rutan ovan ORDAGRANT i en kodruta allra först i ditt "
+              "första svar i sessionen, före allt annat och utan kommentar före den. "
+              "Därefter svarar du på det användaren faktiskt frågade. Gör det bara en "
+              "gång per session, och hoppa över det om användarens första meddelande är "
+              "brådskande eller uttryckligen ber dig låta bli.")
     sys.stdout.write("\n".join(ut) + "\n")
 
 
