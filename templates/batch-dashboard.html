@@ -32,8 +32,12 @@
   /* ── Peek-läge: titta på bakgrundsfotot utan att stänga dashboarden ──────────
      Allt som ligger ÖVER fotot bär .peekable och tonas ut; scrimen med. Kvar står
      bara peek-knappen, annars vet man inte hur man kommer tillbaka. */
-  .peekable{transition:opacity .3s ease}
-  html.peek .peekable{opacity:0;pointer-events:none}
+  body{overflow-x:hidden}
+  .peekable{transition:transform .46s cubic-bezier(.22,1,.36,1),opacity .3s ease .08s;will-change:transform}
+  html.peek .peekable{opacity:0;pointer-events:none;transform:translateX(114%)}
+  html.peek .report{transform:translateY(118%)}
+  html.peek .credit{transform:translateY(220%)}
+  html.peek .dbtn{transform:translateX(-220%)}
   html.peek .scrim{opacity:0}
   .pbtn{position:fixed;right:.7em;bottom:.55em;z-index:9;font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;
     color:var(--tx);background:#0f1f18cc;border:1px solid var(--line);border-radius:.5em;padding:.42em .8em;cursor:pointer}
@@ -317,13 +321,14 @@
   var BGS=[],bgIx=0,bgLayer=0,bgTimer=null;
   var bgEls=[document.getElementById("bgA"),document.getElementById("bgB")];
   var pnum=document.getElementById("pnum"),pcred=document.getElementById("pcred");
-  var BG_CYCLE_MS=45000;
+  var BG_CYCLE_MS=45000,BGCAP="";
   function normBgs(D){
     var raw=(D&&D.bgImages&&D.bgImages.length)?D.bgImages:["bg.jpg"];
     return raw.map(function(x){
       var f=(typeof x==="string")?x:(x&&x.file);
       var c=(typeof x==="string")?"":((x&&x.credit)||"");
-      return {file:f,credit:c||(D&&D.bgCredit)||""};
+      var n=(typeof x==="string")?"":((x&&x.note)||"");
+      return {file:f,credit:c||(D&&D.bgCredit)||"",note:n};
     }).filter(function(x){return !!x.file;});
   }
   function showBg(i,instant){
@@ -333,9 +338,11 @@
     bgEls[next].style.backgroundImage='url("'+IMG_DIR+'/'+b.file+'")';
     if(!instant){bgEls[next].classList.remove("off");bgEls[bgLayer].classList.add("off");bgLayer=next;}
     pnum.textContent=(bgIx+1)+"/"+BGS.length;
-    pcred.textContent=b.credit||"";
+    pcred.textContent=(b.note?b.note+" · ":"")+(b.credit||"");
     var cr=document.getElementById("credit");
     if(cr)cr.textContent=b.credit||"";
+    var cap=document.getElementById("caption");
+    if(cap)cap.innerHTML=b.note?('<b>Bild '+(bgIx+1)+':</b> '+b.note):(BGCAP||"");
   }
   function stepBg(d){showBg(bgIx+d);restartCycle();}
   function restartCycle(){
@@ -406,7 +413,9 @@
     var tot=totalTokens();
     document.getElementById("sub").textContent=doneN+" av "+D.items.length+" klara"
       +(tot?(" · "+(tot>=1e6?((tot/1e6).toFixed(1)+" M"):(Math.round(tot/1000)+"k"))+" tokens"):"");
-    document.getElementById("caption").innerHTML=D.bgCaption||"";
+    BGCAP=D.bgCaption||"";
+    var _b=BGS[bgIx];
+    document.getElementById("caption").innerHTML=(_b&&_b.note)?("<b>Bild "+(bgIx+1)+":</b> "+_b.note):BGCAP;
     var s=ST[D.status]||ST.paused;
     document.getElementById("statusBadge").className="status "+s[1]+(D.status==="running"?" pulse":"");
     document.getElementById("statusTxt").textContent=s[0];

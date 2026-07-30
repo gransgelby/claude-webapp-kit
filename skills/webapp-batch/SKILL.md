@@ -59,7 +59,15 @@ cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/$BAS-data.js
 - **HTML-escapa ALL task-text** (titlar/noter/aktivitet/frågor/testfall) — de innehåller ofta literal kod (`<Link>`, `<div>`); utan escaping korrumperas DOM:en och efterföljande kort blir osynliga. Verifiera **visibilitet**, inte bara DOM-nodantal.
 - **Live-statustext** (`activity`, kursiv, lägre kontrast) på pågående kort — stora poster kan ta 20–30 min utan att något syns; uppdatera vid varje meningsfullt delsteg (~2–4 min), töm vid klart.
 - **"Kräver din input"-läge:** en post som halvvägs visar sig inte kunna slutföras autonomt → sätt `phase:"input"` + `question`. **Halta inte hela batchen** — fortsätt med andra autonoma poster medan du väntar, väv in svaret när det kommer.
-- **Bakgrundsfoton — 5–7 per batch, som dashboarden cyklar mellan:**
+- **Bakgrundsfoton — EN PER POST, med egen kommentar.** Antalet bilder ska matcha antalet poster i batchen (golv ~6, tak ~20 så nedladdningen inte skenar). Skälet är att en lång batch är något användaren **tittar på** i timmar, och fyra bilder som cyklar blir tapet.
+  - **Sprid temat.** Femton foton på samma motiv är tråkigt. Härled **3–5 söktema** ur batchen och fördela antalet mellan dem: dess *ämne* (det appen handlar om), dess *metod* (granskning, mätning, källkritik), dess *lynne* (nattarbete, städning, optimering), plus ett **jokertema** som knyter an till användaren, orten eller årstiden. En batch som mest är städning och optimering kan alltså ha en städbild, en depåstopp-bild och en bild på ett välordnat verktygsskåp — alla relevanta, ingen likadan. Kör `batch-bg.py` en gång per tema med var sin andel av antalet.
+  - **Skriv en `note` per bild** — en eller två meningar som binder just det fotot till batchen, till dagen, till användaren eller till platsen. Det är den som gör bilderna värda att titta på i stället för att bara vara bakgrund. Mallen visar den som bildtext medan bilden syns, och i bildväljaren i peek-läget.
+    ```js
+    "bgImages": [ {"file":"bg1.jpg","note":"…","credit":"Fotograf, «Titel» · Wikimedia Commons (CC BY 2.0)"}, … ]
+    ```
+    Sikta på **överraskning framför fullständighet**: en oväntad koppling slår en beskrivning av vad man ser. Hitta inte på fakta om användaren — knyt an till sådant som faktiskt står i projektet (orten, dagens datum, en post i batchen, ett tal som mättes).
+  - Saknas `note` faller mallen tillbaka på den gemensamma `bgCaption`, så äldre batchar fungerar oförändrat.
+- **Så hämtas de:**
   ```
   ${CLAUDE_PLUGIN_ROOT}/bin/batch-bg.py "<sökfras>" reports/$BAS-img/bg.jpg \
       --count 6 --seed $BAS --ledger docs/batch-historik.json
