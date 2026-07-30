@@ -11,21 +11,29 @@ Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin
 
 ## Steg 1 — Backlog som interaktiv widget
 Läs projektets backlog-fil och visa den som en interaktiv widget (`mcp__visualize__show_widget`). Varje post har:
+**Rollfördelningen som widgeten ska spegla: användaren äger VÄRDET, du äger MEKANIKEN.** Vilka poster som är viktiga är användarens bedömning. I vilken ordning de ska köras är din — den följer av atomicitet, beroenden och avbrottsrisk (se `long-run`, *Körordning*), och det är kunskap användaren inte ska behöva hålla i huvudet. Låt därför **inte** widgeten be om körordning.
+
 - **Kryssruta** — vilka poster som ingår i batchen.
-- **Dra-handtag** — rader kan dras upp/ned; ordningen = körordning.
+- **Prioritet per post — hög / medel / låg.** Det här är användarens egentliga hävstång och ska vara lätt att sätta: en trelägeskontroll per rad, inte en sortering. Prioritet betyder *hur viktigt det är att detta blir gjort*, inte när det ska köras.
 - **Autonomi-märkning** — hur självständigt posten kan lösas:
   - 🟢 **Autonomt** — tydlig spec, inga externa beslut/creds/live-verifiering.
   - 🟡 **Autonomt efter frågor** — behöver några inledande beslut, kör sedan själv.
   - 🔴 **Kräver din närvaro** — aktiv medverkan behövs (prod/live-verifiering, creds, hårdvara, subjektiva designval som kräver iteration).
 - **Insats** — Låg / Medel / Stor (eller "Klar — verifiera").
 - **Kommentarsfält** — fri text: prioriteringar, förtydliganden eller **utmaningar** ("varför kräver X min närvaro?").
-- **"Starta batch"-knapp** — skickar valda poster (i vald ordning) + kommentaren tillbaka via `sendPrompt`.
+- **Knapp — "Föreslå körordning"**, inte "Starta batch". Knappen startar **ingenting**; den skickar valda poster med sin prioritet + kommentaren tillbaka via `sendPrompt` och ber om ett förslag. Namnge den så att det syns — en knapp som heter "starta" och inte startar är ett löftesbrott.
 
-## Steg 2 — Frågerunda (maximera autonomin), EN omgång
-Innan något jobb påbörjas:
-1. **Ställ alla frågor** som krävs för att köra autonomt — samla dem i **en** omgång, inte droppvis. Använd `AskUserQuestion` för rena val.
-2. **Svara på utmaningar** i kommentaren: förklara varför en 🔴/🟡-post kräver närvaro och **omklassificera** till 🟢/🟡 om den går att lösa med inledande frågor.
-3. Bekräfta slutlig plan (ordning + vad som körs autonomt vs väntar på svar).
+## Steg 2 — Ordningsförslag + frågerunda, EN omgång — och en GRIND innan något körs
+
+Widgetens svar är **indata, inte ett startkommando.** Innan en enda post påbörjas:
+
+1. **Lägg ett ordningsförslag** ur `long-run`s regel — *det som förlorar mest vid ett avbrott går först* — vägt mot användarens prioriteter. Redovisa **varför varje post ligger där den ligger**, kort: atomisk och tål inte avbrott · beroende (låser upp andra) · degraderar mjukt · liten och billig att göra om.
+2. **Säg uttryckligen vad som hamnade UTANFÖR batchen och varför.** Det här är den viktigaste raden i hela steget. Användaren väljer poster utan att veta vad de kostar; faller något bort för att budgeten inte räcker, eller för att en beroendekedja inte var uppfylld, är det just där hen vill kunna opponera sig — och det går bara om det står utskrivet. En tyst nedprioritering läses som ett beslut användaren tagit, fast hen aldrig fick veta.
+3. **Ställ alla frågor** som krävs för att köra autonomt — samla dem i **en** omgång, inte droppvis. Använd `AskUserQuestion` för rena val.
+4. **Svara på utmaningar** i kommentaren: förklara varför en 🔴/🟡-post kräver närvaro och **omklassificera** till 🟢/🟡 om den går att lösa med inledande frågor.
+5. **Vänta på ett svar.** Steget är en grind, inte en avisering. Användaren ska hinna säga *"nej, X är viktigare än du tror"* eller *"varför är Y inte med?"* innan agenterna startar — det är hela skälet till att ordningen inte sätts i widgeten.
+
+Avvik gärna från användarens prioritet när mekaniken kräver det (en liten post som låser upp tre stora ska ligga först även om den är lågprioriterad) — men **säg att du avviker och varför**. Prioritet som tyst ignoreras är sämre än ingen prioritet alls.
 
 ## Steg 3 — Körning med LIVE-dashboard (samma fil = slutrapporten)
 
