@@ -6,6 +6,13 @@ description: Spelbok för ett stort eller obevakat batch-pass som drivs av subag
 
 För en **stor eller obevakad** körning: en lång autonom session som lutar sig på **subagenter** (en per post) för att räcka långt utan att spränga context. Bygger på batch-skillens dashboard + kö-format; det här är harnessen ovanpå.
 
+> **Gränsen mot `webapp-batch` — läs den innan du lägger till något här.**
+> **Den här filen äger KÖRMEKANIKEN:** hur agenterna startas, verifieras och överges. Subagent per post, tiers A/B, adversariell verifiering, circuit-breaker, körordning efter förlust vid avbrott, reservlista och svanspost, säkerhet vid obevakad körning.
+> **`webapp-batch` äger PROCESSEN:** urvalswidget, ordningsförslag som grind, dashboard, DoD per post, grenar och commits, testfall, doc-hygien-grind, batch-kö.
+> Tumregel: rör ändringen **hur agenterna arbetar** hör den hit; rör den **vad användaren ser eller bestämmer** hör den i `webapp-batch`.
+> De två är lager, inte alternativ: en batch drivs som förval av den här spelboken, och användaren behöver aldrig be om subagenter separat. En liten batch som uppenbart ryms i ett context-fönster kan köras inline — då är den här filen overkill.
+> ⚠️ **Ändringar som spänner över båda måste landa på båda ställena.** Det har redan gått fel en gång: reservlistans *regel* skrevs här medan widgetens *kontroll* för den glömdes i `webapp-batch`, så specen sa "kryssruta" medan widgeten hade tre lägen. Skriv aldrig bara halva mekanismen.
+
 ## Verifiera förutsättningar FÖRST (30 s)
 1. **Gren:** stå på batch-grenen `batch/<datum>`. Committa allt här. **Aldrig huvudgrenen. Aldrig `git push`.**
 2. **Servrar uppe:** projektets dev-/backend-server svarar (starta om vid behov). Annars stallar poster.

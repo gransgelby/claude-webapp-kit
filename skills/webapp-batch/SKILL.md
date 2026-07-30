@@ -6,6 +6,12 @@ description: Kör ett batch-jobb — välj/prioritera flera backlog-poster visue
 
 Standard-arbetssättet för större jobb (flera backlog-poster på en gång, eller ett stort spår). Målet: användaren väljer och prioriterar **visuellt** vad som ska göras, Claude kör så **autonomt som möjligt**, resultatet levereras som en **granskbar HTML-dashboard med tydliga testinstruktioner**. Minimerar fram-och-tillbaka.
 
+> **Gränsen mot `long-run` — läs den innan du lägger till något här.**
+> **Den här filen äger PROCESSEN:** hur användaren väljer och prioriterar arbete, vad hen får se, hur resultatet redovisas och hur batchen stängs. Urvalswidget, ordningsförslag som grind, dashboard, DoD per post, grenar och commits, testfall, doc-hygien-grind, batch-kö.
+> **`long-run` äger KÖRMEKANIKEN:** hur agenterna startas, verifieras och överges. Subagent per post, tiers A/B, adversariell verifiering, circuit-breaker, körordning efter förlust vid avbrott, reservlista och svanspost, säkerhet vid obevakad körning.
+> Tumregel: rör ändringen **vad användaren ser eller bestämmer** hör den hit; rör den **hur agenterna arbetar** hör den i `long-run`.
+> ⚠️ **Ändringar som spänner över båda måste landa på båda ställena.** Det har redan gått fel en gång: reservlistans *regel* skrevs i `long-run` medan widgetens *kontroll* för den glömdes här, så specen sa "kryssruta" medan widgeten hade tre lägen. Skriv aldrig bara halva mekanismen.
+
 ## Steg 0 — Hämta öppen feedback först
 Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin-verktyg, en inkorg, öppna GitHub-issues): hämta de **ohanterade** posterna först och väv in dem som backlog-kandidater i widgeten, så feedback som lämnats någon annanstans aldrig missas. Saknas ett sådant ställe: hoppa steget.
 
