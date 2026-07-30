@@ -65,6 +65,35 @@ checkpointade**: committa per delsteg, håll verify grön efter varje, skriv ned
 åtgärd. En stor post som checkpointar internt är nästan lika billig att avbryta som en
 liten — och då spelar ordningen mindre roll.
 
+## Ett pass får aldrig stå stilla — reservlista + svanspost
+
+Den vanligaste förlusten i ett obevakat pass är **inte** att det avbryts för tidigt, utan
+att det blir **klart** för tidigt: tre poster man trodde var svåra visar sig lätta, batchen
+är klar efter tre timmar, och resten av natten går till spillo. Skattningar är dåliga och
+blir det inte bättre — bygg därför passet så att det inte spelar roll.
+
+**1. Reservlista, förhandsgodkänd.** Låt användaren markera poster som *"tas in om
+batchen blir klar tidigt"* redan när batchen laddas. Då kan du plocka in dem kl. 04 utan
+att väcka någon. Två regler följer av körordningen ovan: reserven körs **sist**, alltså när
+avbrottsrisken är störst, så den ska bestå av **små och mjukt degraderande** poster — aldrig
+en stor refaktorisering. Och bara **🟢 autonoma** poster får ligga där; ingen är vaken att
+svara på en fråga.
+
+**2. En svanspost som inte kan ta slut.** Reserven är ändlig. Avsluta därför alltid med ett
+arbete som är obegränsat djupt, alltid värt att göra, aldrig kräver ett beslut och kan
+avbrytas var som helst. Bra kandidater, i tur och ordning:
+
+- **Granska passets egna commits adversariellt** (`git show <sha>` per post, se
+  verifierar-steget). Den ger ofta mest av allt i hela passet — i en verklig körning gav
+  tre sådana granskningar 22, 16 respektive 12 fynd, varav ett var ett kravbrott.
+- **Beta av en stående lista med ogranskade delar** eller andra små bokförda fynd.
+- **Utöka testtäckningen** på det passet just rörde.
+
+**Hitta aldrig på ny scope kl. 04.** Svansposten ska vara *fördjupning av det som redan är
+gjort*, inte nya funktioner — allt annat är ett beslut användaren inte fick ta. Skriv i
+slutrapporten hur mycket tid som gick till reserv och svans, så att nästa batch kan laddas
+bättre.
+
 ## Två tiers
 - **Tier A — auto-verifierade (klart över natten):** subagenten gör jobbet och verifierar (projektets test/verify-kommando grönt / a11y-lint grön / rapport-fil finns) → huvudloopen **committar**. Klar utan människa.
 - **Tier B — förslags-utkast (väntar sign-off):** subagenten bygger + self-verifierar (typecheck + tester + demo renderar utan fel + fångar **före/efter** via skärmdump) → committa → markera i dashboarden som **"väntar din sign-off"**. Verifiera **inte** interaktivt — det gör människan på morgonen.
