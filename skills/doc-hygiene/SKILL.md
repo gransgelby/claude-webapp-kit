@@ -53,6 +53,28 @@ Innan du säger "klart" på en logik-/feature-ändring, svep dessa fyra:
 
 Snabbkoll till sist: inga döda länkar, ingen dubblerad text.
 
+## Räkna om varje tal du skriver — skriv aldrig av det
+
+**Ett tal som kopieras framåt slutar vara sant utan att någon märker det.** I ett
+verkligt svep hittades **tre** sådana i samma pass: antalet tester (stod 1883, var
+1971), antalet krav-ID (stod 205 medan två poster längs vägen sagt 209 och 210 — det
+verkliga talet var 212) och antalet CSS-variabler (stod 43, lintern räknade 51). Alla
+tre hade skrivits av från en tidigare post i stället för att mätas.
+
+Därför, för **varje** tal som hamnar i en doc-fil:
+
+1. **Mät det själv** — kör testsviten, kör lintern, kör grep:et, läs värdet ur koden.
+2. **Skriv ut metoden** bredvid talet, så att nästa session kan göra om räkningen i
+   stället för att lita på den. (*"unikt räknad union av `**Krav Xn` och `krav Xn`"* är
+   en metod; *"212 krav"* är ett påstående.)
+3. **Verifiera två vägar** när talet är viktigt nog att bli citerat vidare — t.ex. både
+   en grep och en kontroll att serierna är sammanhängande utan luckor.
+4. Går talet **inte** att verifiera: skriv inte ut det. Säg att det inte gick.
+
+Samma regel gäller när du sammanfattar arbete: **hämta talen ur commit-meddelandena**,
+inte ur en tidigare sammanfattning. Ett commit-meddelande som bär sina mätvärden gör hela
+det här steget billigt — se `long-run`-skillen.
+
 ## Backlog-intag ("lägg i backloggen: …")
 
 1. **Dubbelkolla** mot befintliga poster → vid överlapp **slå ihop** (inte en rad

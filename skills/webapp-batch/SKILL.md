@@ -69,6 +69,24 @@ cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/$BAS-data.js
 - **Ren GUI-/styling-ändring:** typecheck + token-lint (`${CLAUDE_PLUGIN_ROOT}/bin/check-design-tokens.mjs`), verifiera visuellt.
 - Varje fixad bugg får ett regressionstest.
 
+### Pixeldiff-grinden — gäller VARJE post, inte bara de som rör UI
+**En ändring i logiken kan flytta bilden utan att röra en rad vy-kod.** I en verklig körning gav en modellpost en byggnadstyp egen sockelhöjd, och **huset sjönk 45 cm i fasadvyn** utan att någon tittade; en annan post lät en byggnad stå synligt högre, och den bilden granskades först flera poster senare. Båda blev rätt till slut av tur, inte av ordning.
+
+Innan en post markeras klar: **rendera ett fast urval skärmar före och efter och diffa dem.**
+```
+node ${CLAUDE_PLUGIN_ROOT}/bin/granska-bild.mjs --diff fore.png efter.png   → antal skilda bildpunkter
+```
+- **Diff = 0** → bilden är *bevisat* oförändrad. Skriv ut talet; påstå det aldrig utan att ha mätt.
+- **Diff ≠ 0 på en post som inte skulle röra bilden** → **titta på bilden** innan du säger klart, och skriv i commiten vad som flyttade sig och varför.
+- **Diff ≠ 0 på en UI-post** → granskningsloopen som vanligt: rendera → titta med `Read` → åtgärda → rendera igen, tills inget nytt hittas.
+
+Grinden är billig därför att **renderingen kostar nästan inget medan bildläsningen är dyr** — diffen gör att man bara betalar för att titta när något faktiskt ändrats.
+
+### Katalog över visuella fall — bygg den tidigt, den betalar sig direkt
+Lägg appens visuella tillstånd som en **numrerad lista i en vanlig datafil**, renderad på en utvecklarsida (`/granskning` e.d.) — inte som en handskriven sida. Numreringen ska vara **stabil**: nya fall läggs sist, befintliga numreras aldrig om.
+
+Tre saker delar då samma uppräkning: granskare hänvisar till **fallnummer** i stället för att beskriva vad de tittade på, testerna kan **svepa över hela listan** (ett verkligt projekt fick ett test som kräver att ingen hjälplinje i något av 83 fall hamnar på en materialfyllning), och pixeldiffen ovan får ett självklart urval.
+
 ## Gren & commits
 - Batch-arbete går på en **egen gren** `batch/<datum>` (flera samma dag: `batch/<datum>-<slug>`) — aldrig direkt på huvudgrenen.
 - **Committa varje klar våg** innan sessionen slutar (skyddar mot förlorad ocommittad diff mellan sessioner). Commit-meddelandet listar posterna + "tester gröna". Kör aldrig `git push` utan uttryckligt ok.
@@ -91,6 +109,8 @@ Lägg **detaljerade testfall** sist, i data-fältet `tests: { must: [...], nice:
 
 ## Slut — dashboarden fryses, doc-hygien-GATE
 När allt är klart fryses statusen och samma fil blir **slutrapporten**. Ge **bara sökvägen** i chatten (inline-bilder är token-tunga / syns ej i schemalagda pass). `reports/*`-artefakterna är **ephemeral** (gitignorerade) — kopieras aldrig in i doc-filerna.
+
+**Före/efter-grind vid frysningen.** Gå igenom varje `done`-post som rörde något visuellt och kontrollera att `before`/`after` faktiskt är **ifyllda i datafilen**. Instruktionen finns redan högre upp, men den är lätt att missa i en lång körning: subagenter producerar kompositer, orkestratorn klistrar sökvägen i chatten, och dashboarden fryses med tomma bildfält — vilket hände i en verklig batch och fick upptäckas av användaren efteråt. Kompositerna ligger dessutom ofta i en scratchpad som försvinner med sessionen, medan `reports/<bas>-img/` överlever. Saknas en bild: kopiera in den och koppla den, eller skriv i postens `note` **varför** den saknas. Öppna dashboarden en gång efter frysningen och kontrollera att inga bildlänkar är brutna.
 
 **Doc-hygien-sweep är en GATE, inte på-begäran:** innan batchen förklaras klar, kör doc-hygien-skillen — svep alla doc-filer, trimma dubbletter/felplacerat, distillera **en** kort klar-post i history + ta bort klara backlog-poster.
 

@@ -18,12 +18,55 @@ För **varje** post: spawna en **`batch-worker`-subagent** (`Agent`-verktyget) i
 - **Sekventiellt för fil-rörande poster** — undvik att två subagenter skriver samma fil samtidigt.
 - **Parallellt för read-only-poster** (research, audit, deep-research) — inga fil-krockar → kör flera på en gång.
 
+⚠️ **Men trappa upp parallelliteten försiktigt när varje agent driver en egen webbläsare**
+(puppeteer, MCP-browser) eller annan tung extern process. I en verklig körning startades
+**sju** bildgranskare samtidigt och **fem dog** — alla med `API Error: Connection closed
+mid-response`, **alla direkt vid start**, ingen efter att ha börjat arbeta. Det är
+felsignaturen: dör agenter i klump i uppstarten, och särskilt när de var och en startar en
+tung process, är det för mycket på en gång.
+
+Detta är en **observation, inte ett tak** — orsaken kan vara transient och försvinna. Så:
+börja bredare om du vill, men **känn igen signaturen och backa till 2–3 samtidiga och kör
+om** när den dyker upp. Räkna aldrig en agent som dog i uppstarten som "granskad" — dess
+del är **ogjord**, och det ska bokföras som det (se nedan).
+
+**Bokför ogjort arbete som ogjort.** En granskning som aldrig kördes får inte se ut som en
+som blev godkänd. Skriv in de överhoppade delarna i backloggen med namn, så att nästa
+session ser att loopen inte är fullbordad.
+
 ## Två tiers
 - **Tier A — auto-verifierade (klart över natten):** subagenten gör jobbet och verifierar (projektets test/verify-kommando grönt / a11y-lint grön / rapport-fil finns) → huvudloopen **committar**. Klar utan människa.
 - **Tier B — förslags-utkast (väntar sign-off):** subagenten bygger + self-verifierar (typecheck + tester + demo renderar utan fel + fångar **före/efter** via skärmdump) → committa → markera i dashboarden som **"väntar din sign-off"**. Verifiera **inte** interaktivt — det gör människan på morgonen.
 
 ## Verifierar-steg (för Tier A-kod)
 Innan commit av en Tier A-**kod**post: låt en **andra subagent** adversariellt dubbelkolla ändringen (leta buggar/regressioner, kör verify själv). Gör om vid fynd.
+
+**Granska COMMITEN, inte arbetsträdet.** Committa posten först och peka granskaren på
+`git show <sha>` — då kan granskningen köra **parallellt med nästa post** utan att de två
+trampar på varandra. Granskar den trädet måste allt annat stå still, och verifieringen
+kostar wall-clock i stället för att vara gratis. Instruera granskaren uttryckligen:
+ändra inga filer, kör ingen skrivande git, och kör **inte** testsviten (trädet är i
+rörelse — ett rött resultat vore någon annans arbete, inte ett fynd). Den får läsa vad som
+helst, greppa, hämta källor och räkna för hand.
+
+**Verifiera den föreslagna ÅTGÄRDEN, inte bara fyndet.** Ett fynd är en hypotes — men
+åtgärdsförslaget är också en hypotes, och den prövas nästan aldrig. I en verklig körning
+föreslog en granskare en ny formel för symbolstorlek; prövad i bild tog den bort en hel
+funktion (en av två portar på ett dubbelgarage försvann), alltså bröt den ett krav för att
+laga ett annat. Åtgärdsposten avvisade två av tolv fynd på det sättet, med mätning. Låt
+därför den som åtgärdar **pröva förslaget i artefakten** och säga rakt ut när den inte
+håller med — en granskare som lyds blint är lika farlig som en som ignoreras.
+
+**Skriv ned fynd till disk LÖPANDE, inte till sist.** Så fort ett fynd är bekräftat: in i
+backloggen eller kravtexten, **innan** åtgärden påbörjas. Då lämnar varje avbrott — slut
+kvot, kraschad agent, stängd session — antingen en rättad bugg eller en bokförd sådan,
+aldrig ett halvfärdigt träd. Åtgärda i storleksordning **liten först**, och håll verify
+grön efter varje enskilt fynd i stället för bara till sist.
+
+**Bär mätvärdena i commit-meddelandet.** Talen som togs fram i posten — kronor före/efter,
+uppmätta pixlar, antal tester — ska stå i commiten, inte bara i agentens rapport. Rapporten
+försvinner med sessionen; commiten blir kvar och är det underlag doc-hygienen och nästa
+sammanfattning hämtar ur. Det gör slutrapporten billig och gissningsfri.
 
 ## Circuit-breaker
 **2 test-fel i rad** på samma post → **lämna posten** (sätt den gul/notera i dashboarden med vad som fastnade), gå vidare. Halta aldrig hela passet för en post.
