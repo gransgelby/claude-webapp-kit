@@ -13,7 +13,7 @@ Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin
 Läs projektets backlog-fil och visa den som en interaktiv widget (`mcp__visualize__show_widget`). Varje post har:
 **Rollfördelningen som widgeten ska spegla: användaren äger VÄRDET, du äger MEKANIKEN.** Vilka poster som är viktiga är användarens bedömning. I vilken ordning de ska köras är din — den följer av atomicitet, beroenden och avbrottsrisk (se `long-run`, *Körordning*), och det är kunskap användaren inte ska behöva hålla i huvudet. Låt därför **inte** widgeten be om körordning.
 
-- **Kryssruta** — vilka poster som ingår i batchen.
+- **Läge per post — Med / Reserv / Nej**, inte en kryssruta. *Reserv* betyder *"tas in bara om batchen blir oväntat klar tidigt"* och är hela mekanismen bakom `long-run`s reservlista — den måste kunna sättas **här**, medan användaren är vaken, annars finns inget förhandsgodkännande att luta sig mot kl. 04. Fyll reservbänken med **små, mjukt degraderande och 🟢 autonoma** poster: de körs sist, alltså när avbrottsrisken är störst, och ingen är vaken att svara på en fråga.
 - **Prioritet per post — hög / medel / låg.** Det här är användarens egentliga hävstång och ska vara lätt att sätta: en trelägeskontroll per rad, inte en sortering. Prioritet betyder *hur viktigt det är att detta blir gjort*, inte när det ska köras.
 - **Autonomi-märkning** — hur självständigt posten kan lösas:
   - 🟢 **Autonomt** — tydlig spec, inga externa beslut/creds/live-verifiering.
@@ -31,7 +31,8 @@ Widgetens svar är **indata, inte ett startkommando.** Innan en enda post påbö
 2. **Säg uttryckligen vad som hamnade UTANFÖR batchen och varför.** Det här är den viktigaste raden i hela steget. Användaren väljer poster utan att veta vad de kostar; faller något bort för att budgeten inte räcker, eller för att en beroendekedja inte var uppfylld, är det just där hen vill kunna opponera sig — och det går bara om det står utskrivet. En tyst nedprioritering läses som ett beslut användaren tagit, fast hen aldrig fick veta.
 3. **Ställ alla frågor** som krävs för att köra autonomt — samla dem i **en** omgång, inte droppvis. Använd `AskUserQuestion` för rena val.
 4. **Svara på utmaningar** i kommentaren: förklara varför en 🔴/🟡-post kräver närvaro och **omklassificera** till 🟢/🟡 om den går att lösa med inledande frågor.
-5. **Vänta på ett svar.** Steget är en grind, inte en avisering. Användaren ska hinna säga *"nej, X är viktigare än du tror"* eller *"varför är Y inte med?"* innan agenterna startar — det är hela skälet till att ordningen inte sätts i widgeten.
+5. **Redovisa reserven och svansposten.** Säg vilka poster som ligger i reserv och i vilken ordning de plockas in, och namnge den **svanspost** som gör att passet inte kan stanna i förtid (`long-run`, *Ett pass får aldrig stå stilla*). Användaren ska veta vad som händer med natten om allt går fortare än väntat — annars är reserven ett löfte hen inte kan lita på.
+6. **Vänta på ett svar.** Steget är en grind, inte en avisering. Användaren ska hinna säga *"nej, X är viktigare än du tror"* eller *"varför är Y inte med?"* innan agenterna startar — det är hela skälet till att ordningen inte sätts i widgeten.
 
 Avvik gärna från användarens prioritet när mekaniken kräver det (en liten post som låser upp tre stora ska ligga först även om den är lågprioriterad) — men **säg att du avviker och varför**. Prioritet som tyst ignoreras är sämre än ingen prioritet alls.
 
