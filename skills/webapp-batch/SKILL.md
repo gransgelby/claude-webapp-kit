@@ -17,6 +17,21 @@ Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin
 
 ## Steg 1 — Backlog som interaktiv widget
 
+**Kommer batchen som en vägg av punkter i chatten? Skriv ned den först — sedan gäller steg 1 som vanligt.**
+Stegen nedan förutsätter att batchen börjar i backloggen, men den vanligaste verkliga starten är att
+användaren klistrar in tjugo–trettio synpunkter på en gång. Då gör du **först** detta, och först
+därefter widgeten:
+1. Skriv posterna till `docs/batch-queue.md` (kö-formatet står längst ned) — **en rad per punkt**, med
+   användarens egen formulering. Det är den durabla listan; ett chattmeddelande är det inte.
+2. Kör steg 1 och 2 som vanligt: widget → ordningsförslag → grind.
+
+⚠️ **"Du kan ju börja med ovanstående så länge" betyder *kör preflight, sedan börja* — inte *hoppa över
+riggningen*.** Exakt den meningen läste i ett verkligt pass som lov att skippa kön, widgeten,
+frågerundan och dashboarden; passet blev gjort men gick inte att följa, och användaren fick fråga tre
+gånger vad som pågick. Riggningen tar två minuter (`bin/batch-preflight.mjs`, ett kommando) och är det
+enda som gör resten av passet granskbart. Att sakna den kostar hela passets granskbarhet — det är aldrig
+det användaren menar med "så länge".
+
 **Utseendet är avgjort och ska INTE ritas om från beskrivningen nedan — det finns en mall:**
 `${CLAUDE_PLUGIN_ROOT}/templates/batch-urvalswidget.html`. Läs filen, byt ut **två** saker och
 skicka hela innehållet som `widget_code` till `mcp__visualize__show_widget`:
@@ -68,20 +83,33 @@ Avvik gärna från användarens prioritet när mekaniken kräver det (en liten p
 
 **Körmotor (standard, inget separat val):** driv körningen med `long-run`-spelboken — **en subagent (`batch-worker`) per post** i eget context så huvudloopen hålls lätt och context-fönstret sparas. Sekventiellt för fil-rörande poster (undvik krock), parallellt för read-only research/audit; huvudloopen committar per klar post. Detta är default så fort en batch startas ("starta batchjobb") — användaren behöver **inte** be om subagenter separat. Läs `long-run`-skillen för tiers A/B, adversariell verifiering och circuit-breaker. (Undantag: en pytteliten batch som uppenbart ryms i ett context-fönster kan köras inline — men vid minsta tvekan, subagenter.)
 
-Kopiera mallen till batchen och driv den under hela körningen. **Basnamnet måste vara unikt per batch — även flera batchar samma dygn** (`batch-<datum>-<kort-slug>`, t.ex. `batch-2026-07-26-ui`); skalet härleder datafil, bildkatalog OCH sina localStorage-nycklar ur basnamnet, så ett återanvänt namn ärver den förra batchens välkomstskärm, klocka och "sett"-set:
+**Rigga med ETT kommando — `batch-preflight.mjs` gör hela steget och vägrar när det ska vägra:**
 ```
-BAS=batch-<datum>-<slug>
-cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard.html reports/$BAS.html
-cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/$BAS-data.js
+node ${CLAUDE_PLUGIN_ROOT}/bin/batch-preflight.mjs \
+    --bas batch-<datum>-<slug> --namn "Operation …" [--gren batch/<datum>-<slug>] [--poster N]
 ```
+Den kontrollerar basnamn + namn, skapar grenen, kopierar mallen till `reports/<bas>.html` +
+`<bas>-data.js`, lägger `<bas>-img/`, skriver `<bas>-state.md` och skriver in namnet i historiken —
+och skriver sist ut en checklista på det som återstår (namn/foton/poster/widget). Exit 1 med skäl om
+något krockar. **Basnamnet måste vara unikt per batch — även flera batchar samma dygn**
+(`batch-<datum>-<kort-slug>`, t.ex. `batch-2026-07-26-ui`); skalet härleder datafil, bildkatalog OCH
+sina localStorage-nycklar ur basnamnet, så ett återanvänt namn ärver den förra batchens välkomstskärm,
+klocka och "sett"-set — det är därför preflight vägrar i stället för att skriva över.
+
+Skriptet fanns inte förrän riggningen visat sig vara det som faller: sex steg i prosa, lästa en gång
+vid passets start, hoppades över **allihop** i ett verkligt pass. En hook (`bin/batch-guard.mjs`)
+påminner numera när en `batch-worker` startas utan att någon dashboard är `running` — den blockerar
+inget, men tystnar bara när riggningen faktiskt är gjord.
+
 **Ingen strängpatchning inuti HTML:en behövs** (och ska inte göras): mallen läser `<bas>-data.js` och `<bas>-img/bg.jpg` ur sitt eget filnamn. Öppna dashboarden själv en gång innan du ger länken och se att korten renderar — en trasig dashboard ser ut som en trasig batch.
 - **Allt personligt är per BATCH, aldrig per dygn:** nytt `name`, ny `nameWhy`, nytt `saying`, nya bakgrundsbilder och ett `bgId` som är unikt för batchen (använd basnamnet). Kör man två batchar samma dag ska de kännas som två olika jobb — samma namn eller samma foto två gånger är en bugg, inte en stilfråga.
 - **Namn och foton får aldrig gå igen — det vaktas av en durabel logg**, `docs/batch-historik.json` (git-spårad, liten):
   ```json
   { "namn": ["Operation Grundplåt", "Operation Snåla"], "bilder": ["File:…jpg"] }
   ```
-  **Läs `namn` innan du döper batchen** och välj något som inte står där; lägg till det nya namnet när batchen startar. `bilder` skrivs av `batch-bg.py` självt när `--ledger` pekas dit, och redan använda foton filtreras bort ur sökträffarna. Finns filen inte: skapa den. (Utan logg upprepas fotot tyst — det var precis vad som hände i fyra batchar i rad innan loggen fanns.)
+  **Läs `namn` innan du döper batchen** och välj något som inte står där. Kollen och inskrivningen görs åt dig av `batch-preflight.mjs` (den vägrar starta på ett namn som redan finns); gör du riggningen för hand måste du lägga till namnet själv när batchen startar. `bilder` skrivs av `batch-bg.py` självt när `--ledger` pekas dit, och redan använda foton filtreras bort ur sökträffarna. Finns filen inte: skapa den. (Utan logg upprepas fotot tyst — det var precis vad som hände i fyra batchar i rad innan loggen fanns.)
 - **Välkomst-skärmen (sätt ALLTID tre fält):** ge batchen ett `name` (visas i header + som "Välkommen till «name»"), en `nameWhy` (en rad om **varför** namnet valdes) och ett `saying` (ett passande talesätt med glimten i ögat, visas i citat). Utelämna dem inte — de driver välkomst-flashen och gör starten personlig.
+- **ETT KORT PER POST — aldrig gruppkort.** Antalet kort ska vara exakt antalet punkter användaren valde. Det är frestande att slå ihop näraliggande punkter till ett kort ("polering av kartvyn ×5") — gör det inte. I ett verkligt pass blev **26 punkter till 6 gruppkort**, och användarens första reaktion var *"Är det bara 6 (5 kvar) tasks alltså? Det känns som jag la till en massa saker"*. Den som skrivit tjugosex synpunkter vill se tjugosex rader och kunna följa var och en av dem; gruppering gör mätaren snygg och listan oanvändbar — och den döljer dessutom vad som tyst föll bort. Behöver du gruppera för läsbarhet: gör det med `size`/ordning, inte genom att ta bort rader.
 - **En skärm utan skroll:** alla valda poster som kompakta statuskort i ett rutnät, var och en med sin **fas** — ⚪ Väntar · 🔵 Startar · 🟡 Pågår · 🟣 Testar · 🟢 Klar · 🔴 Blockerad — plus en total-mätare (X/N klara). **Sätt fasen löpande** (startar→pågår→testar→klar), inte bara vid klart, så mellanstegen syns.
 - **Asymmetrisk in-place-uppdatering:** data bor i `-data.js` som anropar en renderar-callback (JSONP-mönster). HTML-skalet re-injicerar skriptet var ~6:e s och patchar bara kort vars data ändrats — scroll och öppna popups står stilla. Skriv om `-data.js` (inte HTML-skalet) vid varje statusändring. Poll är på **endast** när `status:"running"`.
 - **HTML-escapa ALL task-text** (titlar/noter/aktivitet/frågor/testfall) — de innehåller ofta literal kod (`<Link>`, `<div>`); utan escaping korrumperas DOM:en och efterföljande kort blir osynliga. Verifiera **visibilitet**, inte bara DOM-nodantal.
@@ -107,7 +135,21 @@ cp ${CLAUDE_PLUGIN_ROOT}/templates/batch-dashboard-data.js reports/$BAS-data.js
   Hittas färre bra träffar än `--count` tar skriptet de som finns (svaret bär `wanted` kontra `got`) — hitta inte på fler. `--seed $BAS` gör urvalet reproducerbart vid omkörning; `--index N` bläddrar manuellt om temat blev fel. `bgCredit` behålls som fallback för äldre batchar utan `bgImages`.
 - **Peek-läget finns — nämn det i legenden/rapporten:** tangent **B** eller knappen nere till höger tonar bort dashboarden så fotot går att se i detalj, **← → stegar mellan batchens bilder** (auto-cykeln pausas medan man tittar), och Esc, B igen eller ett klick tar tillbaka vyn.
 - **Öppna helst över `http://localhost`** (kör `python3 -m http.server` i `reports/`) — `file://` gör att webbläsaren kan återanvända gammalt HTML utan att läsa om från disk.
-- **Före/efter på GUI-poster:** fånga "före" **innan** du redigerar; fyll `before`/`after` (base64) när posten blir klar → kamera-chip dyker upp på kortet, detaljvyn öppnas i ny flik. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py`.
+- **Före/efter på GUI-poster:** fånga "före" **innan** du redigerar; fyll `before`/`after` (base64) när posten blir klar → kamera-chip dyker upp på kortet, detaljvyn öppnas i ny flik. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py`. **Bilderna ska ligga i `reports/<bas>-img/`, aldrig i en scratchpad** — scratchpaden dör med sessionen och tar bilden med sig (regeln står också i `batch-worker`-agentens definition, eftersom det är arbetaren som skapar filen).
+
+### Kontinuitet i ett bevakat pass — lämna inte tillbaka mellan vågor
+`long-run` äger det obevakade passet; det här gäller när användaren är **vaken** och tittar på
+dashboarden. Regeln är densamma ändå: **kör vidare tills listan är slut eller användaren avbryter.**
+Rapportera vid **milstolpar** (batchen riggad · halvvägs · klar), inte efter varje block av poster.
+
+Skälet är uppmätt: i ett verkligt pass slutade varje våg med ett svar i chatten, och användaren frågade
+**tre gånger** under samma pass om något kraschat eller avbrutits. Ett svar i chatten läses som *"jag är
+klar nu"* — även när det står "fortsätter strax". Dashboarden är rapportkanalen under körning; chatten
+är för milstolpar och för sådant som kräver ett beslut.
+
+**Lämnar du faktiskt tillbaka — sätt `status:"paused"` i `-data.js` samtidigt.** En dashboard som står
+kvar på `"running"` medan ingenting kör pollar vidare, visar `🟡 Pågår` på ett kort som ingen arbetar på,
+och läser som ett hängt jobb. `"paused"` stänger av pollen och säger sanningen: passet väntar på dig.
 
 ## DoD per post (innan en post markeras klar)
 - **Logik-/analys-ändring:** kör **projektets test/verify-kommando** och se att den är grön. Rör den delad fixtur/golden data → uppdatera den.

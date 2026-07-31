@@ -11,7 +11,7 @@ Byggt ur konventionerna i app-projektet-projektet och en källbelagd utredning o
 
 | Skill | Trigger | Vad den gör |
 |---|---|---|
-| `webapp-batch` | "starta batchjobb", backlog-tabell | Interaktiv backlog-widget (välj/dra/autonomi-märk) → frågerunda → live HTML-dashboard → körning → slutrapport med testfall |
+| `webapp-batch` | "starta batchjobb", backlog-tabell | Preflight (ett kommando riggar batchen) → interaktiv backlog-widget (välj/dra/autonomi-märk) → frågerunda → live HTML-dashboard → körning → slutrapport med testfall |
 | `long-run` | stort/obevakat pass, "nattkörning" | Subagent-per-post-spelbok: eget context per deljobb, sekventiellt för fil-rörande, circuit-breaker, committa per klar post |
 | `breakfast-report` | efter obevakat pass | Fristående HTML-rapport på disk med base64-skärmdumpar + text per åtgärd |
 | `design-workflow` | design/UI-arbete | Wireframes → shadcn + tokens → inspiration/känsla → tweakcn/DaisyUI → tre körfält (struktur/look/nagg) + grid-alignment |
@@ -20,9 +20,54 @@ Byggt ur konventionerna i app-projektet-projektet och en källbelagd utredning o
 
 **Agent:** `batch-worker` — subagent-typen som utför en enskild batch-post i eget context och returnerar en kort sammanfattning.
 
-**Hooks:** en `SessionStart`-pekare till pluginets ingångar (låg brus, en gång).
+**Hooks:** en `SessionStart`-pekare till pluginets ingångar (låg brus, en gång), och en `PreToolUse`-vakt på `Agent` (`batch-guard.mjs`) som påminner när en batch-post startas utan riggad dashboard.
 
-**bin/** — genericerad tooling: `shot.mjs` (element-skärmdump), `compose.py` (före/efter-komposit), `batch-bg.py` (dashboard-bakgrund), `check-design-tokens.mjs` (token-lint: hårdkodade färger + spacing).
+**bin/** — genericerad tooling: `batch-preflight.mjs` (riggar en batch, se nedan), `batch-guard.mjs` (hooken), `shot.mjs` (element-skärmdump), `compose.py` (före/efter-komposit), `batch-bg.py` (dashboard-bakgrund), `check-design-tokens.mjs` (token-lint: hårdkodade färger + spacing), `wireframe.html` (wireframe-editor, se nedan).
+
+### batch-preflight.mjs — riggningen som ett kommando
+
+```bash
+node bin/batch-preflight.mjs --bas batch-2026-08-01-nattpass --namn "Operation X" \
+    [--gren batch/2026-08-01-nattpass] [--poster 12]
+```
+
+Kontrollerar att basnamnet och batchnamnet inte redan är använda (ett återanvänt basnamn ärver
+förra batchens `localStorage`; ett återanvänt namn gör passen omöjliga att skilja åt i efterhand),
+skapar grenen, kopierar dashboard-mallen till `reports/<bas>.html` + `<bas>-data.js`, lägger
+`<bas>-img/` och en `<bas>-state.md`, skriver in namnet i `docs/batch-historik.json` — och listar
+sist det som **återstår** och som skriptet inte kan göra åt dig (namn/talesätt, bakgrundsbilder,
+en post per punkt, urvalswidgeten, ordningsförslaget). Exit 1 med läsbart skäl när något krockar,
+och inga halvvägs-ändringar: alla kontroller körs före första skrivningen.
+
+Varför det finns som ett skript i stället för som en instruktion: riggningen stod i prosa som läses
+en gång vid passets start, och i ett verkligt pass hoppades alla sex stegen över. `batch-guard.mjs`
+är samma påminnelse i hook-form — den fyrar när en `batch-worker` startas utan att någon
+`reports/*-data.js` står på `"running"`, den **blockerar aldrig** (alltid `allow`), och den är tyst
+så fort riggningen är gjord.
+
+### wireframe.html — skissa layout och lämna över till Claude
+
+Öppna filen direkt i webbläsaren (ingen server, inga beroenden). Dra i rutnätet för att
+skapa rutor, namnge dem och skriv en kommentar per ruta. **Kopiera för Claude** lägger en
+markdown-tabell på urklipp som du klistrar in i chatten.
+
+Poängen är utdataformatet: rutorna snäpper **alltid till kolumn- och radspann**, aldrig
+till fria pixlar. Claude får därför *grid-avsikt* (`kol 9–12 (spann 4)`) som direkt kan
+översättas till `col-span-*` + gap ur spacing-token — i stället för
+`position:absolute; top:340px`, som ger en icke-responsiv layout och är precis det
+`design-workflow`-skillen varnar för.
+
+**Rad 10 = vikningen på en MacBook Pro 14″.** Radhöjden är låst till 5,7 % av bredden, så
+tio rader motsvarar exakt en skärm och allt under den streckade linjen kräver scroll — en
+skiss som är dubbelt så hög som skärmen ljuger annars om vad som får plats.
+
+Rutorna ritas som klassiska wireframe-block (streckad ram, mellangrå fyllning); typen bärs
+av ramens kulör så att ytorna förblir neutrala och layouten är det som syns. Arbetet sparas
+i `localStorage` och kan exporteras/öppnas som JSON.
+
+Färgerna i filen är medvetet **literala, inte CSS-variabler**: verktyget öppnas i allt från
+Safari till inbäddade snapshot-vyer, och en renderare som inte löser `var()` gör annars hela
+gränssnittet oformaterat. Kontrasterna är mätta mot WCAG 2.1 AA (38 kontrollpunkter).
 
 **templates/** — `batch-dashboard.html` + `-data.js` (live-dashboard-mallen) och `project-skeleton/` (tomma doc-roll-filer + `CLAUDE.md` + `.gitignore` att kopiera in i ett nytt projekt).
 
@@ -62,8 +107,8 @@ Ingen dubbel bokföring: ett faktum har *en* hemvist, korslänka i stället för
 .claude-plugin/plugin.json   manifest
 skills/<namn>/SKILL.md        en mapp per skill
 agents/batch-worker.md        subagent-definition
-hooks/hooks.json              SessionStart-pekare
-bin/                          tooling (shot/compose/batch-bg/token-lint) + hook-script
+hooks/hooks.json              SessionStart-pekare + PreToolUse-vakt på Agent
+bin/                          tooling (preflight/shot/compose/batch-bg/token-lint) + hook-script
 templates/                    dashboard-mall + projekt-skelett
 ```
 
