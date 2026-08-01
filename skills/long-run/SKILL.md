@@ -149,8 +149,10 @@ Ett pass som kapas mitt i en post förlorar mer än posten: dashboarden står ha
 | Läge | Villkor | Vad du gör |
 |---|---|---|
 | **kör** | inget av nedanstående | Starta nästa post fritt. |
-| **ryms** | 5h ≥ 75 % · takten når taket inom 45 min · orkestratorns context ≥ 75 % | Starta **bara** en post som hinner bli klar och committad. Välj kort framför stor. |
-| **avsluta** | 5h ≥ 90 % · takten når taket inom 20 min · orkestratorns context ≥ 85 % | **Starta ingen ny post.** Gå över till avslutsprotokollet nedan. |
+| **ryms** | 5h ≥ 75 % · takten når taket inom 45 min · orkestratorns context ≥ 75 % · **veckan ≥ 85 %** | Starta **bara** en post som hinner bli klar och committad. Välj kort framför stor. |
+| **avsluta** | 5h ≥ 90 % · takten når taket inom 20 min · orkestratorns context ≥ 85 % · **veckan ≥ 95 %** | **Starta ingen ny post.** Gå över till avslutsprotokollet nedan. |
+
+⚠️ **Veckan är den hårdaste av de tre, och den kom in sist.** Femtimmarsfönstret rullar om, och context går att avlasta med subagenter — veckan har ingen redovisad återställning alls, så det finns inget "vänta ut den". Tar den slut mitt i ett nattpass är passet över där det står. Den saknades i `batchbeslut()` fram till 2026-08-01: verdiktet räknades bara på context och 5h, så en vecka på 97 % gav `kör`. Trösklarna ägs av `band_vecka()` i `bin/runtime-status.py`.
 
 ⚠️ **Avslutet är inte gratis — det är själva poängen med tröskeln.** Frysa dashboarden, före/efter-grinden, doc-hygien-GATE:n, cache-rensningen, starta servrar och verifiera länklistan: tiotals minuter. Börjar du när mätaren står på noll blir det inget avslut alls. Reserven är satt till **20 minuter** och är en *uppskattning* — kalibrera den mot verkliga avslut och justera `AVSLUTSRESERV_MIN` i `bin/runtime-status.py`.
 

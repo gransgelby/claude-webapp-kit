@@ -93,6 +93,7 @@ def batchbeslut(snap):
     """
     k = snap["kontext"]["procent"]
     f = snap["fem_timmar"]["procent"]
+    v = (snap.get("vecka") or {}).get("procent")
     prognos = snap["fem_timmar"].get("prognos_min_till_slut")
     reset = snap["fem_timmar"].get("återställs")
 
@@ -124,6 +125,21 @@ def batchbeslut(snap):
         höj("avsluta", f"Orkestratorns context på {k} % – den överlever inte ett avslut till.")
     elif k is not None and k >= 75:
         höj("ryms", f"Orkestratorns context på {k} %.")
+
+    # Veckan är den HÅRDASTE av de tre och den enda utan räddning: femtimmarsfönstret rullar
+    # om (och just därför nollas `stopp` ovan när resetet kommer först), medan context går att
+    # avlasta med subagenter. Veckans återställning redovisas inte alls — nedgångarna i
+    # historiken är oregelbundna — så det finns inget "vänta ut den". Tar den slut mitt i ett
+    # nattpass är passet över där det står. Den saknades här till 2026-08-01: batchbeslut()
+    # läste bara kontext och 5h, så en vecka på 97 % gav verdiktet "kör".
+    # Trösklarna ägs av band_vecka() (band 2 = 85 %, band 3 = 95 %) — samma bandindelning som
+    # ryms/avsluta redan använder för de andra två måtten. Ändra dem DÄR, inte här.
+    bv = band_vecka(v)
+    if bv >= 3:
+        höj("avsluta", f"Veckan på {v} % – den rullar inte om och har ingen redovisad "
+                       f"återställning; tar den slut är passet över där det står.")
+    elif bv >= 2:
+        höj("ryms", f"Veckan på {v} % – ingen redovisad återställning att vänta ut.")
 
     return {"läge": läge, "skäl": skäl, "min_till_stopp": round(stopp) if stopp else None}
 
