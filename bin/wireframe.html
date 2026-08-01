@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Wireframe · webapp-kit</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   Wireframe-editor (webapp-kit)
+
+   Rutor snäpper ALLTID till kolumn-/radspann – aldrig fria pixlar. Utdatat är
+   grid-avsikt som direkt kan bli col-span-* + gap ur spacing-token.
+
+   OBS: färgerna är medvetet LITERALA (inga CSS-variabler). Verktyget öppnas i
+   allt från Safari till inbäddade snapshot-vyer, och en renderare som inte
+   löser var() gör annars hela gränssnittet oformaterat (serif-text, osynliga
+   ramar). Robusthet väger tyngre än elegans i en fristående enfilsapp.
+
+   Kontrast (WCAG 2.1 AA) verifierad i kommentarer vid respektive färgpar.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:13px;
+  background:#1a1e23;                 /* panel-chrome */
+  color:#a9b2bd;                      /* 7,2:1 mot #1a1e23 ✓ */
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+button,input,select,textarea{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:13px;
+}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+/* ── Fokus: synlig för tangentbord (WCAG 2.4.7). #74a69c ger 6,0:1 ─────── */
+:focus{outline:none}
+:focus-visible{outline:2px solid #74a69c;outline-offset:2px;border-radius:5px}
+
+/* ── Kontroller ───────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:#262b32;border:1px solid #646e7b;   /* 3,2:1 mot panel ✓ 1.4.11 */
+  color:#e9edf2;                                  /* 12,1:1 ✓ */
+  border-radius:5px;padding:7px 13px;cursor:pointer;line-height:1.2;
+  transition:background .13s,border-color .13s;
+}
+.btn:hover{background:#2f353d;border-color:#8b95a3}
+.btn:active{background:#22272e}
+.btn--danger:hover{border-color:#c8776a;color:#e8a89d}
+.btn--wide{width:100%}
+.btn--cta{                                        /* Kopiera för Claude */
+  background:#5d8f86;border-color:#5d8f86;color:#0d0f12;  /* 5,2:1 ✓ */
+  font-weight:650;font-size:13.5px;padding:9px 18px;letter-spacing:.01em;
+}
+.btn--cta:hover{background:#74a69c;border-color:#74a69c}
+.btn--cta:active{background:#4a766e;border-color:#4a766e}
+
+.fieldlbl{display:block;font-size:11px;color:#8b95a3;margin:0 0 5px}  /* 5,4:1 ✓ */
+.field{
+  background:#101317;border:1px solid #646e7b;border-radius:5px;
+  color:#e9edf2;padding:7px 9px;width:100%;
+}
+.field::placeholder{color:#7d8794;opacity:1}
+.field:hover{border-color:#8b95a3}
+.field:focus-visible{border-color:#74a69c;outline:2px solid rgba(116,166,156,.35);outline-offset:0}
+textarea.field{resize:vertical;min-height:72px;line-height:1.5}
+
+/* Stepper: −  12  + */
+.step{display:inline-flex;align-items:stretch;border:1px solid #646e7b;border-radius:5px;overflow:hidden;background:#101317}
+.step button{
+  background:#22272e;border:0;color:#c3cbd4;width:26px;cursor:pointer;font-size:15px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.step button:hover{background:#2f353d;color:#e9edf2}
+.step input{
+  width:42px;border:0;background:transparent;color:#e9edf2;text-align:center;padding:6px 0;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;
+}
+.step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.step input[type=number]{-moz-appearance:textfield}
+
+/* ── Topbar ───────────────────────────────────────────────────────────── */
+.top{
+  display:flex;align-items:center;gap:16px;height:56px;padding:0 16px;
+  background:#1a1e23;border-bottom:1px solid #333a43;
+}
+.logo{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:#e9edf2;white-space:nowrap}
+.logo b{color:#74a69c;font-weight:700}
+.tsep{width:1px;height:26px;background:#333a43;flex:none}
+.tgrp{display:flex;align-items:center;gap:8px}
+.tgrp > .fieldlbl{margin:0}
+.grow{flex:1}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.wrap{display:grid;grid-template-columns:1fr 288px;height:calc(100% - 56px)}
+.stage{                       /* MÖRKGRÅ – verktygets yta, inte sidan */
+  background:#24282e;overflow:auto;padding:16px 22px 40px;
+}
+.side{background:#1a1e23;border-left:1px solid #333a43;overflow-y:auto}
+
+/* ── Linjal ───────────────────────────────────────────────────────────── */
+.ruler{position:relative;height:20px;margin:0 auto 5px;max-width:1240px}
+.ruler span{
+  position:absolute;top:0;height:20px;display:flex;align-items:center;justify-content:center;
+  font-size:10px;color:#8b95a3;                    /* 5,4:1 mot #24282e ✓ */
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+
+/* ── Ritytan (SVART) ──────────────────────────────────────────────────── */
+.board{
+  /* Kanten bär hela separationen mellan verktygsyta och sida: svart mot mörkgrå
+     ger bara 1,35:1, så ramen måste själv nå 3:1 mot stage (#6b7480 → 3,11:1). */
+  position:relative;background:#08090b;border:1px solid #6b7480;border-radius:3px;
+  margin:0 auto;max-width:1240px;user-select:none;touch-action:none;
+  box-shadow:0 8px 34px -14px rgba(0,0,0,.85);
+}
+.grid{position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:3px}
+.grid .col{position:absolute;top:0;bottom:0;background:rgba(233,237,242,.045)}  /* kolumnyta */
+.grid .rl{position:absolute;left:0;right:0;height:1px;background:rgba(233,237,242,.05)} /* radlinje */
+
+/* Vikningslinje: allt under kräver scroll på en MacBook Pro 14" */
+.fold{position:absolute;left:0;right:0;pointer-events:none}
+/* Slöjan är svart-på-svart och ändrar INTE ytan – dess enda jobb är att dämpa
+   rutnätslinjerna under vikningen, så området läser som "bortom skärmen". */
+.fold .veil{position:absolute;left:0;right:0;bottom:0;background:rgba(8,9,11,.72)}
+.fold .line{position:absolute;left:0;right:0;height:0;border-top:1px dashed #9aa4b0}
+/* Taggen ligger NEDANFÖR linjen, i det tomma området – ovanför krockade den
+   med innehållet i rutorna som slutar precis vid vikningen. */
+.fold .tag{
+  position:absolute;right:8px;margin-top:6px;
+  font-size:10px;color:#c3cbd4;background:#161a20;border:1px solid #5c6672;
+  padding:3px 8px;border-radius:4px;white-space:nowrap;
+}
+
+/* ── Rutor ────────────────────────────────────────────────────────────── */
+.box{
+  position:absolute;border:1.5px dashed #8b95a3;      /* 6,6:1 mot svart ✓ */
+  background:#454b52;                                  /* mellangrå fyllning */
+  border-radius:4px;padding:9px 11px;overflow:hidden;cursor:move;
+  transition:box-shadow .12s,border-color .12s;
+}
+.box__n{font-size:12.5px;font-weight:600;color:#e9edf2;line-height:1.3;pointer-events:none} /* 8,9:1 ✓ */
+.box__c{font-size:11.5px;color:#c3cbd4;margin-top:4px;line-height:1.45;pointer-events:none;
+        display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+.box__p{position:absolute;right:7px;bottom:5px;font-size:10px;color:#c3cbd4;pointer-events:none;
+        font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+/* Typen bärs av RAMENS kulör, inte av ytan. Mättade fyllningar fick verktyget
+   att läsa som ett diagram i stället för en wireframe – ytorna hålls därför
+   nära den neutrala gråa, med bara en antydan till hue. */
+.box[data-kind=resultat]{background:#414f47;border-color:#8fc0a3}
+.box[data-kind=media]{background:#3f4a55;border-color:#93b4cc}
+.box[data-kind=panel]{background:#4a4553;border-color:#b79cc4}
+/* Markering byter FÄRG och får en glödring – men behåller streckningen, eftersom
+   streckade rutor är wireframe-språket och inte ska försvinna vid val. */
+.box.sel{border-color:#74a69c;box-shadow:0 0 0 1px #74a69c,0 0 0 5px rgba(116,166,156,.18)}
+.hnd{position:absolute}
+.hnd-e{right:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
+.hnd-w{left:-4px;top:10px;bottom:10px;width:9px;cursor:ew-resize}
+.hnd-s{bottom:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
+.hnd-n{top:-4px;left:10px;right:10px;height:9px;cursor:ns-resize}
+.hnd-se{right:-5px;bottom:-5px;width:14px;height:14px;cursor:nwse-resize}
+.box.sel .hnd-se{background:#74a69c;border:1px solid #08090b;border-radius:2px;right:-4px;bottom:-4px;width:9px;height:9px}
+
+.ghost{position:absolute;border:1.5px dashed #74a69c;background:rgba(116,166,156,.14);
+       border-radius:4px;pointer-events:none}
+.chip{
+  position:absolute;pointer-events:none;z-index:5;
+  background:#12151a;border:1px solid #74a69c;color:#e9edf2;
+  font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11px;
+  padding:3px 8px;border-radius:4px;white-space:nowrap;
+}
+
+/* ── Tomt läge ────────────────────────────────────────────────────────── */
+.empty-stage{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;
+             gap:8px;pointer-events:none;text-align:center;padding:24px}
+.empty-stage svg{opacity:.5}
+.empty-stage p{margin:0;font-size:13px;color:#a9b2bd;line-height:1.6;max-width:34ch}
+.empty-stage em{font-style:normal;color:#7d8794;font-size:12px}
+
+/* ── Sidopanel ────────────────────────────────────────────────────────── */
+.sec{padding:14px 14px 16px;border-bottom:1px solid #333a43}
+.sec h3{margin:0 0 11px;font-size:10.5px;text-transform:uppercase;letter-spacing:.11em;
+        color:#8b95a3;font-weight:700}
+.sec .fieldlbl{margin-top:11px}
+.sec .fieldlbl:first-of-type{margin-top:0}
+.hint{font-size:12px;color:#8b95a3;line-height:1.6}
+.pos{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:11.5px;color:#c3cbd4;
+     background:#101317;border:1px solid #333a43;border-radius:4px;padding:6px 8px}
+
+.list{display:flex;flex-direction:column;gap:2px}
+.item{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:5px;
+  font-size:12.5px;cursor:pointer;border:1px solid transparent;color:#c3cbd4;
+  background:none;width:100%;text-align:left;
+}
+.item:hover{background:#262b32}
+.item[aria-current=true]{background:#262b32;border-color:#646e7b;color:#e9edf2}
+.item i{width:9px;height:9px;border-radius:2px;background:#7d8794;flex:none}
+.item[data-kind=resultat] i{background:#8fc0a3}
+.item[data-kind=media] i{background:#93b4cc}
+.item[data-kind=panel] i{background:#b79cc4}
+.item b{margin-left:auto;font-weight:400;font-size:11px;color:#8b95a3;
+        font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+
+.legend{display:flex;flex-direction:column;gap:7px}
+.legend div{display:flex;align-items:center;gap:9px;font-size:12px;color:#a9b2bd}
+.legend i{width:18px;height:12px;border-radius:2px;border:1.5px dashed #8b95a3;background:#454b52;flex:none}
+.legend i.k-resultat{background:#414f47;border-color:#8fc0a3}
+.legend i.k-media{background:#3f4a55;border-color:#93b4cc}
+.legend i.k-panel{background:#4a4553;border-color:#b79cc4}
+
+.keys{display:flex;flex-direction:column;gap:8px}
+.keys div{display:flex;align-items:center;gap:8px;font-size:11.5px;color:#a9b2bd}
+kbd{background:#101317;border:1px solid #4d555f;border-bottom-width:2px;border-radius:4px;
+    padding:2px 6px;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:10.5px;
+    color:#c3cbd4;flex:none}
+
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);
+  background:#5d8f86;color:#0d0f12;font-weight:650;font-size:13px;
+  padding:10px 18px;border-radius:6px;opacity:0;transition:opacity .18s,transform .18s;
+  pointer-events:none;box-shadow:0 10px 30px -10px rgba(0,0,0,.8);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <span class="logo">WIRE<b>FRAME</b></span>
+  <span class="tsep"></span>
+
+  <div class="tgrp">
+    <label class="fieldlbl" for="screen">Vy</label>
+    <input class="field" type="text" id="screen" value="Namnlös vy" style="width:210px">
+  </div>
+
+  <div class="tgrp">
+    <label class="fieldlbl" for="cols">Kolumner</label>
+    <span class="step">
+      <button type="button" data-step="cols" data-d="-1" aria-label="Färre kolumner">−</button>
+      <input type="number" id="cols" value="12" min="2" max="24">
+      <button type="button" data-step="cols" data-d="1" aria-label="Fler kolumner">+</button>
+    </span>
+  </div>
+
+  <div class="tgrp">
+    <label class="fieldlbl" for="rows">Rader</label>
+    <span class="step">
+      <button type="button" data-step="rows" data-d="-1" aria-label="Färre rader">−</button>
+      <input type="number" id="rows" value="10" min="2" max="40">
+      <button type="button" data-step="rows" data-d="1" aria-label="Fler rader">+</button>
+    </span>
+  </div>
+
+  <span class="grow"></span>
+  <button class="btn" type="button" id="open">Öppna…</button>
+  <button class="btn" type="button" id="save">Spara JSON</button>
+  <button class="btn btn--danger" type="button" id="clear">Rensa</button>
+  <button class="btn btn--cta" type="button" id="copy">Kopiera för Claude</button>
+</header>
+
+<div class="wrap">
+  <main class="stage">
+    <div class="ruler" id="ruler" aria-hidden="true"></div>
+    <div class="board" id="board">
+      <div class="grid" id="grid"></div>
+      <div class="fold" id="fold"></div>
+      <div class="empty-stage" id="emptyStage">
+        <svg width="52" height="40" viewBox="0 0 52 40" fill="none" stroke="#8b95a3" stroke-width="1.4">
+          <rect x="1" y="1" width="30" height="22" rx="2" stroke-dasharray="4 3"/>
+          <rect x="21" y="17" width="30" height="22" rx="2" stroke-dasharray="4 3"/>
+        </svg>
+        <p>Dra i rutnätet för att skapa en ruta.</p>
+        <em>Rutorna snäpper alltid till kolumn- och radspann.</em>
+      </div>
+    </div>
+  </main>
+
+  <aside class="side">
+    <section class="sec">
+      <h3>Vald ruta</h3>
+      <p class="hint" id="noSel">Ingen ruta vald. Klicka på en ruta i skissen, eller dra i rutnätet för att skapa en.</p>
+      <div id="props" hidden>
+        <label class="fieldlbl" for="pName">Namn</label>
+        <input class="field" type="text" id="pName" placeholder="t.ex. Resultat">
+        <label class="fieldlbl" for="pKind">Typ</label>
+        <select class="field" id="pKind">
+          <option value="innehåll">Innehåll</option>
+          <option value="resultat">Resultat / primärt</option>
+          <option value="media">Ritning / karta</option>
+          <option value="panel">Panel (fast bredd)</option>
+        </select>
+        <label class="fieldlbl" for="pNote">Kommentar</label>
+        <textarea class="field" id="pNote" placeholder="Vad ska ligga här? Beteende, prioritet, vad som är viktigast…"></textarea>
+        <label class="fieldlbl">Position</label>
+        <div class="pos" id="pPos"></div>
+        <button class="btn btn--wide btn--danger" type="button" id="del" style="margin-top:12px">Ta bort ruta</button>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h3>Rutor</h3>
+      <div class="list" id="list"></div>
+      <p class="hint" id="listEmpty">Inga rutor än.</p>
+    </section>
+
+    <section class="sec">
+      <h3>Typer</h3>
+      <div class="legend">
+        <div><i></i>Innehåll</div>
+        <div><i class="k-resultat"></i>Resultat / primärt</div>
+        <div><i class="k-media"></i>Ritning / karta</div>
+        <div><i class="k-panel"></i>Panel (fast bredd)</div>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h3>Kortkommandon</h3>
+      <div class="keys">
+        <div><kbd>Delete</kbd> ta bort vald</div>
+        <div><kbd>Esc</kbd> avmarkera</div>
+        <div><kbd>⌘D</kbd> duplicera</div>
+        <div><kbd>←↑↓→</kbd> flytta</div>
+        <div><kbd>⇧</kbd>+<kbd>←↑↓→</kbd> ändra storlek</div>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="file" accept="application/json" class="sr">
+
+<script>
+'use strict';
+/* En rad = 5,7 % av bredden ≈ en tiondel av en MacBook Pro 14"-vy.
+   10 rader = exakt en skärm → vikningslinjen hamnar alltid vid rad 10. */
+const ROW_RATIO = 0.057, FOLD_ROWS = 10, GAP = 6, KEY = 'webappkit:wireframe';
+const $ = s => document.querySelector(s);
+const board = $('#board'), grid = $('#grid'), ruler = $('#ruler'), fold = $('#fold');
+
+let state = { screen:'Namnlös vy', cols:12, rows:10, boxes:[] };
+let sel = null, uid = 1, drag = null, chip = null;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const cellW = () => board.clientWidth / state.cols;
+const rowH  = () => Math.max(26, board.clientWidth * ROW_RATIO);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} }
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY); if(!raw) return;
+    const d = JSON.parse(raw);
+    if(d && Array.isArray(d.boxes)){ state = d; uid = 1 + state.boxes.reduce((m,b)=>Math.max(m,b.id),0); }
+  }catch(e){}
+}
+
+/* ── Rutnät, linjal, vikning ──────────────────────────────────────────── */
+function layout(){
+  const w = cellW(), rh = rowH();
+  board.style.height = (state.rows * rh) + 'px';
+
+  grid.innerHTML = '';
+  for(let c=0;c<state.cols;c++){                     // kolumnytor (mellanrum = svart)
+    const el = document.createElement('div');
+    el.className = 'col';
+    el.style.left = (c*w + GAP/2) + 'px';
+    el.style.width = (w - GAP) + 'px';
+    grid.appendChild(el);
+  }
+  for(let r=1;r<state.rows;r++){
+    const el = document.createElement('div');
+    el.className = 'rl'; el.style.top = (r*rh) + 'px';
+    grid.appendChild(el);
+  }
+
+  ruler.innerHTML = '';
+  for(let c=0;c<state.cols;c++){
+    const s = document.createElement('span');
+    s.style.left = (c*w + GAP/2) + 'px'; s.style.width = (w - GAP) + 'px';
+    s.textContent = c+1; ruler.appendChild(s);
+  }
+
+  const foldY = FOLD_ROWS * rh;
+  fold.innerHTML = '';
+  if(state.rows > FOLD_ROWS){
+    fold.style.top = '0'; fold.style.bottom = '0';
+    const veil = document.createElement('div'); veil.className='veil'; veil.style.top = foldY+'px';
+    const line = document.createElement('div'); line.className='line'; line.style.top = foldY+'px';
+    const tag  = document.createElement('div'); tag.className='tag'; tag.style.top = foldY+'px';
+    tag.textContent = 'MacBook Pro 14″ — under linjen krävs scroll';
+    fold.append(veil, line, tag);
+  }
+}
+
+/* ── Rendering ────────────────────────────────────────────────────────── */
+function render(){
+  layout();
+  board.querySelectorAll('.box').forEach(n=>n.remove());
+  const w = cellW(), rh = rowH();
+  state.boxes.forEach(b=>{
+    const el = document.createElement('div');
+    el.className = 'box' + (sel===b.id ? ' sel' : '');
+    el.dataset.id = b.id; el.dataset.kind = b.kind || 'innehåll';
+    el.style.left   = (b.c*w + GAP/2) + 'px';
+    el.style.top    = (b.r*rh + GAP/2) + 'px';
+    el.style.width  = (b.w*w - GAP) + 'px';
+    el.style.height = (b.h*rh - GAP) + 'px';
+    el.innerHTML =
+      '<div class="box__n">' + esc(b.name || 'Namnlös') + '</div>' +
+      (b.note ? '<div class="box__c">' + esc(b.note) + '</div>' : '') +
+      '<div class="box__p">' + b.w + '×' + b.h + '</div>' +
+      ['e','w','s','n','se'].map(h => '<div class="hnd hnd-'+h+'" data-h="'+h+'"></div>').join('');
+    board.appendChild(el);
+  });
+  $('#emptyStage').style.display = state.boxes.length ? 'none' : 'grid';
+  renderSide(); save();
+}
+
+function renderSide(){
+  const b = state.boxes.find(x=>x.id===sel);
+  $('#props').hidden = !b;
+  $('#noSel').hidden = !!b;
+  if(b){
+    if(document.activeElement !== $('#pName')) $('#pName').value = b.name || '';
+    if(document.activeElement !== $('#pNote')) $('#pNote').value = b.note || '';
+    $('#pKind').value = b.kind || 'innehåll';
+    $('#pPos').textContent = 'kol ' + (b.c+1) + '–' + (b.c+b.w) + ' · rad ' + (b.r+1) + '–' + (b.r+b.h)
+                           + '  (' + b.w + '×' + b.h + ')';
+  }
+  const list = $('#list'); list.innerHTML = '';
+  state.boxes.forEach(x=>{
+    const el = document.createElement('button');
+    el.type='button'; el.className='item'; el.dataset.kind = x.kind || 'innehåll';
+    el.setAttribute('aria-current', sel===x.id ? 'true' : 'false');
+    el.innerHTML = '<i></i><span>' + esc(x.name||'Namnlös') + '</span><b>' + x.w + '×' + x.h + '</b>';
+    el.onclick = ()=>{ sel = x.id; render(); };
+    list.appendChild(el);
+  });
+  $('#listEmpty').hidden = state.boxes.length > 0;
+}
+
+/* ── Måttchip under drag ──────────────────────────────────────────────── */
+function showChip(c,r,w,h,x,y){
+  if(!chip){ chip = document.createElement('div'); chip.className='chip'; board.appendChild(chip); }
+  chip.textContent = 'kol ' + (c+1) + '–' + (c+w) + ' · rad ' + (r+1) + '–' + (r+h) + '  ' + w + '×' + h;
+  const br = board.getBoundingClientRect();
+  chip.style.left = clamp(x - br.left + 14, 4, board.clientWidth - 190) + 'px';
+  chip.style.top  = clamp(y - br.top  - 30, 4, board.clientHeight - 26) + 'px';
+}
+function hideChip(){ if(chip){ chip.remove(); chip = null; } }
+
+/* ── Skapa / flytta / storlek ─────────────────────────────────────────── */
+function cellAt(ev){
+  const r = board.getBoundingClientRect();
+  return {
+    c: clamp(Math.floor((ev.clientX - r.left) / cellW()), 0, state.cols-1),
+    r: clamp(Math.floor((ev.clientY - r.top)  / rowH()),  0, state.rows-1)
+  };
+}
+function placeGhost(g,c,r,w,h){
+  const cw = cellW(), rh = rowH();
+  g.style.left=(c*cw+GAP/2)+'px'; g.style.top=(r*rh+GAP/2)+'px';
+  g.style.width=(w*cw-GAP)+'px';  g.style.height=(h*rh-GAP)+'px';
+}
+
+board.addEventListener('pointerdown', ev=>{
+  if(ev.button !== 0) return;
+  const boxEl = ev.target.closest('.box');
+  const handle = ev.target.dataset ? ev.target.dataset.h : null;
+  const start = cellAt(ev);
+
+  if(boxEl){
+    const b = state.boxes.find(x=>x.id === +boxEl.dataset.id);
+    sel = b.id; render();
+    drag = handle ? {mode:'resize', h:handle, b, o:{...b}, start}
+                  : {mode:'move',   b, o:{...b}, start};
+  }else{
+    sel = null; render();
+    const g = document.createElement('div'); g.className='ghost'; board.appendChild(g);
+    placeGhost(g, start.c, start.r, 1, 1);
+    drag = {mode:'create', start, ghost:g};
+    showChip(start.c, start.r, 1, 1, ev.clientX, ev.clientY);
+  }
+  try{ board.setPointerCapture(ev.pointerId); }catch(e){}
+  ev.preventDefault();
+});
+
+board.addEventListener('pointermove', ev=>{
+  if(!drag) return;
+  const p = cellAt(ev);
+
+  if(drag.mode==='create'){
+    const c=Math.min(p.c,drag.start.c), r=Math.min(p.r,drag.start.r);
+    const w=Math.abs(p.c-drag.start.c)+1, h=Math.abs(p.r-drag.start.r)+1;
+    placeGhost(drag.ghost, c, r, w, h);
+    showChip(c,r,w,h, ev.clientX, ev.clientY);
+    return;
+  }
+  const dc = p.c - drag.start.c, dr = p.r - drag.start.r, o = drag.o, b = drag.b;
+  if(drag.mode==='move'){
+    b.c = clamp(o.c + dc, 0, state.cols - o.w);
+    b.r = clamp(o.r + dr, 0, state.rows - o.h);
+  }else{
+    const h = drag.h;
+    if(h.indexOf('e')>-1) b.w = clamp(o.w + dc, 1, state.cols - o.c);
+    if(h.indexOf('s')>-1) b.h = clamp(o.h + dr, 1, state.rows - o.r);
+    if(h==='w'){ const nc = clamp(o.c + dc, 0, o.c + o.w - 1); b.c = nc; b.w = o.w + (o.c - nc); }
+    if(h==='n'){ const nr = clamp(o.r + dr, 0, o.r + o.h - 1); b.r = nr; b.h = o.h + (o.r - nr); }
+  }
+  showChip(b.c,b.r,b.w,b.h, ev.clientX, ev.clientY);
+  render();
+});
+
+board.addEventListener('pointerup', ev=>{
+  if(!drag) return;
+  if(drag.mode==='create'){
+    const p = cellAt(ev);
+    const c=Math.min(p.c,drag.start.c), r=Math.min(p.r,drag.start.r);
+    const w=Math.abs(p.c-drag.start.c)+1, h=Math.abs(p.r-drag.start.r)+1;
+    drag.ghost.remove();
+    const b = {id:uid++, name:'', note:'', kind:'innehåll', c, r, w, h};
+    state.boxes.push(b); sel = b.id;
+    drag = null; hideChip(); render(); $('#pName').focus();
+    return;
+  }
+  drag = null; hideChip(); render();
+});
+
+/* ── Sidopanel ────────────────────────────────────────────────────────── */
+const upd = fn => { const b = state.boxes.find(x=>x.id===sel); if(b){ fn(b); render(); } };
+$('#pName').addEventListener('input', e=>upd(b=>b.name=e.target.value));
+$('#pNote').addEventListener('input', e=>upd(b=>b.note=e.target.value));
+$('#pKind').addEventListener('change', e=>upd(b=>b.kind=e.target.value));
+$('#del').onclick = ()=>{ state.boxes = state.boxes.filter(x=>x.id!==sel); sel=null; render(); };
+$('#screen').addEventListener('input', e=>{ state.screen = e.target.value; save(); });
+
+function setCols(v){
+  state.cols = clamp(v,2,24); $('#cols').value = state.cols;
+  state.boxes.forEach(b=>{ b.c=clamp(b.c,0,state.cols-1); b.w=clamp(b.w,1,state.cols-b.c); });
+  render();
+}
+function setRows(v){
+  state.rows = clamp(v,2,40); $('#rows').value = state.rows;
+  state.boxes.forEach(b=>{ b.r=clamp(b.r,0,state.rows-1); b.h=clamp(b.h,1,state.rows-b.r); });
+  render();
+}
+$('#cols').addEventListener('change', e=>setCols(+e.target.value||12));
+$('#rows').addEventListener('change', e=>setRows(+e.target.value||10));
+document.querySelectorAll('[data-step]').forEach(btn=>{
+  btn.onclick = ()=>{
+    const d = +btn.dataset.d;
+    btn.dataset.step==='cols' ? setCols(state.cols+d) : setRows(state.rows+d);
+  };
+});
+
+/* ── Tangentbord ──────────────────────────────────────────────────────── */
+document.addEventListener('keydown', ev=>{
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target.tagName);
+  if(ev.key==='Escape'){ if(typing) ev.target.blur(); sel=null; render(); return; }
+  if(typing) return;
+  const b = state.boxes.find(x=>x.id===sel);
+  if(!b) return;
+  if(ev.key==='Delete' || ev.key==='Backspace'){
+    ev.preventDefault(); state.boxes = state.boxes.filter(x=>x.id!==sel); sel=null; render(); return;
+  }
+  if((ev.metaKey||ev.ctrlKey) && ev.key.toLowerCase()==='d'){
+    ev.preventDefault();
+    const n = {...b, id:uid++, r:clamp(b.r+b.h, 0, state.rows-b.h)};
+    state.boxes.push(n); sel=n.id; render(); return;
+  }
+  const d = {ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[ev.key];
+  if(d){
+    ev.preventDefault();
+    if(ev.shiftKey){ b.w=clamp(b.w+d[0],1,state.cols-b.c); b.h=clamp(b.h+d[1],1,state.rows-b.r); }
+    else{ b.c=clamp(b.c+d[0],0,state.cols-b.w); b.r=clamp(b.r+d[1],0,state.rows-b.h); }
+    render();
+  }
+});
+
+/* ── Export ───────────────────────────────────────────────────────────── */
+function toMarkdown(){
+  const bs = [...state.boxes].sort((a,b)=> a.r-b.r || a.c-b.c);
+  let s = '# Wireframe: ' + state.screen + '\n\n';
+  s += 'Rutnät: **' + state.cols + ' kolumner × ' + state.rows + ' rader**. ';
+  s += 'Rad ' + FOLD_ROWS + ' motsvarar vikningen på en MacBook Pro 14″ — allt därunder kräver scroll. ';
+  s += 'Positioner är kolumn-/radspann; översätt till `col-span-*` och gap ur spacing-token.\n\n';
+  s += '| Ruta | Typ | Kolumner | Rader | Kommentar |\n|---|---|---|---|---|\n';
+  bs.forEach(b=>{
+    s += '| ' + (b.name||'Namnlös') + ' | ' + (b.kind||'innehåll') + ' | '
+       + (b.c+1) + '–' + (b.c+b.w) + ' (spann ' + b.w + ') | '
+       + (b.r+1) + '–' + (b.r+b.h) + ' (spann ' + b.h + ') | '
+       + (b.note||'').replace(/\n/g,' ') + ' |\n';
+  });
+  s += '\n<details><summary>JSON</summary>\n\n```json\n' + JSON.stringify(state,null,2) + '\n```\n</details>\n';
+  return s;
+}
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); }
+
+$('#copy').onclick = async ()=>{
+  const md = toMarkdown();
+  try{ await navigator.clipboard.writeText(md); toast('Kopierat — klistra in i Claude'); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=md;
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast('Kopierat — klistra in i Claude'); }
+    catch(e2){ toast('Kunde inte kopiera'); }
+    ta.remove();
+  }
+};
+$('#save').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = (state.screen||'wireframe').replace(/[^\wåäöÅÄÖ -]/g,'').trim().replace(/\s+/g,'-') + '.json';
+  a.click(); URL.revokeObjectURL(a.href);
+};
+$('#open').onclick = ()=> $('#file').click();
+$('#file').onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = ()=>{
+    try{
+      const d = JSON.parse(rd.result);
+      if(!d || !Array.isArray(d.boxes)) throw new Error('fel format');
+      state = d; uid = 1 + state.boxes.reduce((m,b)=>Math.max(m,b.id),0); sel = null;
+      sync(); render(); toast('Öppnad');
+    }catch(err){ toast('Kunde inte läsa filen'); }
+  };
+  rd.readAsText(f); e.target.value='';
+};
+$('#clear').onclick = ()=>{
+  if(state.boxes.length && !confirm('Ta bort alla ' + state.boxes.length + ' rutor?')) return;
+  state.boxes=[]; sel=null; render();
+};
+
+function sync(){ $('#screen').value=state.screen; $('#cols').value=state.cols; $('#rows').value=state.rows; }
+addEventListener('resize', render);
+load(); sync(); render();
+</script>
+</body>
+</html>
