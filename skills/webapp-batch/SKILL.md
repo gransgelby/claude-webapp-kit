@@ -201,6 +201,78 @@ När allt är klart fryses statusen och samma fil blir **slutrapporten**. Ge **b
 
 **Doc-hygien-sweep är en GATE, inte på-begäran:** innan batchen förklaras klar, kör doc-hygien-skillen — svep alla doc-filer, trimma dubbletter/felplacerat, distillera **en** kort klar-post i history + ta bort klara backlog-poster.
 
+### Länklistan — sista stycket i slutrapporten, alltid
+
+**Avsluta ALLTID batchen med en kort lista över var man tar sig in**, längst ned i slutmeddelandet:
+
+```
+**Slutrapport:** http://localhost:8099/<bas>.html
+**Appen:**      http://localhost:<port>/            ← testa här
+**<vy>:**       http://localhost:<port>/<vy>        (om batchen rörde den)
+```
+
+- **Starta servrarna själv först, och verifiera att de svarar** — Claude gör allt server-sidigt
+  som krävs för att användaren ska se det NYA. Subagenter stoppar sina egna dev-servrar när de
+  är klara, så efter en lång batch är porten oftast **död** även om den var igång mitt i passet.
+  Ge aldrig en URL du inte just har fått svar från.
+- **Ta med de vy-URL:er batchen faktiskt rörde**, inte bara appens rot: en granskningssida
+  (`/granskning`, `/ritgranskning`), en utvecklarsida för primitiver (`/kontroller`), en ny flik.
+  Det är där arbetet syns, och det är den länken användaren annars måste leta upp.
+- **Öppna dem i användarens EGEN webbläsare, inte i agentens förhandsvisningspanel** — på macOS
+  `open <url>` per länk. Panelen är ditt verifieringsverktyg; användaren vill ha flikar hen kan
+  behålla, bokmärka och läsa på en riktig skärm. Öppna bara de länkar du just verifierat svarar.
+- **Skriv ut vad som är lokalt kontra deployat**, och att en **hård omladdning** kan behövas.
+
+Skälet är mätt i verkligt bruk: en användare som just vaknat till en färdig nattbatch frågade
+*"vad är adressen jag kan testa appen på?"* och tillade att hen **ofta** har svårt att hitta
+tillbaka till appen när en batch är slut. Rapportens sökväg räcker inte — den visar vad som
+gjordes, inte var man provar det. Länklistan kostar tre rader och tar bort hela det letandet.
+
+### Cache-rensning — GÖRS FÖRE länklistan, aldrig efter
+
+En batch lämnar efter sig cacher som får användaren att se **gammal kod på en färsk URL**, och
+det är värre än en död länk: en död länk syns, en stale bundle gör det inte. Gör därför det här
+**innan** du ger länkarna, och i den här ordningen:
+
+1. **Döda kvarglömda dev-servrar.** Subagenter startar egna servrar på egna portar; en som
+   överlevt passet kan hålla appens port och servera en bundle från timmar sedan.
+   `pgrep -fl "next dev"` (eller motsvarande) och stäng det som inte är ditt.
+2. **Radera subagenternas byggcacher.** Varje post som körde en dev-server fick en egen
+   `NEXT_DIST_DIR` (`.next-<post>`, `.vite-<post>`, motsvarande i andra ramverk). De är döda när
+   posten är klar och blir stora fort — i ett verkligt pass låg **245 MB i fem kataloger** kvar
+   efter att agenterna sagt sig ha städat. ⚠️ **Kontrollera att ingen process håller katalogen**
+   (`lsof +D <dir>`) och **rör aldrig en annan sessions katalog** — `.next-claude` och liknande
+   tillhör någon annan som kanske arbetar just nu.
+3. **Starta appservern FÄRSK** och verifiera med en faktisk begäran (`curl -o /dev/null -w "%{http_code}"`)
+   att både roten och varje vy-URL svarar 200. Startade du om servern: kontrollera att den
+   serverar det NYA — läs av något batchen faktiskt ändrade (ett antal, en ny kontroll, en ny
+   rubrik), inte bara att sidan laddar.
+4. **Kör om det som är cache-känsligt i projektet** — token-lint efter en tokenändring, en
+   backend som måste startas om efter kodändring. Projektets `CLAUDE.md` äger den listan.
+
+**Säg sedan uttryckligen vad bara användaren kan göra** — men **mät först om det ens behövs, och
+skriv aldrig ut en tangentkombination du inte vet gäller i deras webbläsare.**
+
+Kolla vad servern faktiskt skickar innan du ber om något:
+
+```
+curl -sI http://localhost:<port>/ | grep -i cache-control
+```
+
+- **`no-store` / `no-cache`** → en vanlig omladdning räcker, och det finns ingen cache att
+  spränga. Säg det i stället för att be om en hård omladdning som inte gör något. En modern
+  dev-server (Next.js, Vite) skickar det här på både dokument och chunkar.
+- **Ingen `Cache-Control` alls** (t.ex. `python -m http.server` framför en rapport) → webbläsaren
+  gissar sig till en färskhetstid ur `Last-Modified` och kan servera ur cache utan att fråga. En
+  vanlig omladdning revalidiserar ändå huvuddokumentet, så den räcker nästan alltid; behöver du
+  mer, be om webbläsarens *töm cache*-funktion snarare än en tangentkombination.
+
+⚠️ **Hårda omladdningar är INTE `⌘⇧R` överallt.** I Safari är `⌘⇧R` **Reader** — instruktionen
+gör något helt annat än avsett, vilket hände i verkligt bruk. `⌘⇧R` gäller Chrome och Firefox.
+Skriv därför hellre *"ladda om sidan"* och, om cachen verkligen måste tömmas, namnge **menyvalet**
+(Safari: Utvecklare → Töm cacheminnen) i stället för en genväg. Menyval är stabila; genvägar är
+webbläsar- och språkberoende.
+
 ## Batch-kön (planera/köa flera batchar)
 Håll en durabel kö i `docs/batch-queue.md` (git-spårad, INTE `reports/`), en post per batch:
 ```

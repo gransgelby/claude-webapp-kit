@@ -15,7 +15,9 @@ Varför HTML framför PDF: självständig och spårsäker (en fil, inga externa 
 1. **Skärmdumpar:** för varje GUI-synlig ändring, kör dev-servern, navigera till vyn och ta en skärmdump. Nya features → bara **efter**-bild; ändrade ytor → **före + efter** (före = git-toggle/gammal fixtur, fångad innan du redigerade). Base64-koda och bädda in. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` (element-skärmdump) + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py` (före|efter-komposit).
 2. **Struktur:** rubrik + datum, en kort **sammanfattningstabell** (en rad per task: klart/överhoppat, testantal, kärnändring), sedan **en sektion per task** med text för icke-GUI-arbete (vad/varför, filer, testresultat) och efter- (eller före/efter-) skärmdump för GUI-arbete.
 3. **Skriv filen** till `reports/frukostrapport-<ÅÅÅÅ-MM-DD>.html` (skapa `reports/` vid behov). `reports/` ska vara **gitignorerat** (genererad artefakt, ej källkod).
-4. **Sista chattmeddelandet:** *bara* sökvägen + en rad om vad som hoppades över. Klistra **aldrig** in skärmdumpar i chatten.
+4. **Sista chattmeddelandet:** *bara* sökvägen + en rad om vad som hoppades över + **länklistan** (se nedan). Klistra **aldrig** in skärmdumpar i chatten.
+
+**Länklistan är obligatorisk och står sist.** Rapportens sökväg visar *vad* som gjordes — inte *var* man provar det. Lista därför alltid slutrapporten, appens URL och de vy-URL:er passet faktiskt rörde (granskningssidor, utvecklarsidor, nya flikar). **Starta servrarna själv och verifiera att de svarar innan du ger länkarna** — subagenter stoppar sina egna dev-servrar när de blir klara, så porten är oftast död när passet är slut. Full regel: `webapp-batch`-skillen, *Länklistan*.
 
 ## Kördes detta som en batch?
 Har passet redan drivit batch-skillens live-dashboard (`reports/batch-<datum>.html`) behövs ingen separat fil — **samma dashboard är slutrapporten** (den bär redan status, före/efter, slutkommentarer och testfall). Ge dess sökväg. Skriv bara en fristående `frukostrapport-*.html` när det inte fanns någon dashboard.
