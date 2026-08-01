@@ -50,8 +50,12 @@ den datan när den finns (`--statusline`).
 
 **Men desktop-appen körde den inte** vid test 2026-08-01: en tapp med `refreshInterval: 30`
 skrev aldrig sin fil på 15 minuter. Konfigurationen ligger kvar i `~/.claude/settings.json`
-som uppgraderingsväg och för terminal-CLI:t. Sökvägen där är absolut och pekar in i
-marketplace-klonen — **flyttas pluginet måste den uppdateras.**
+som uppgraderingsväg och för terminal-CLI:t. Den sökvägen är absolut och användarspecifik —
+**flyttas scriptet måste den uppdateras.**
+
+⚠️ **Hook-kommandon körs genom skalet.** En sökväg med mellanslag (`~/Claude stuff/…`) måste
+citeras, annars bryts kommandot vid mellanslaget och hooken tiger utan felmeddelande — mätt
+2026-08-01. `$CLAUDE_PLUGIN_ROOT` är mellanslagsfri, så pluginets egna hookar berörs inte.
 
 ## Ad hoc
 
