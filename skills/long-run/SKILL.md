@@ -138,6 +138,34 @@ sammanfattning hämtar ur. Det gör slutrapporten billig och gissningsfri.
 ## Circuit-breaker
 **2 test-fel i rad** på samma post → **lämna posten** (sätt den gul/notera i dashboarden med vad som fastnade), gå vidare. Halta aldrig hela passet för en post.
 
+## Arbetsbudget — passet ska ta slut på DIN signal, inte på kontots
+
+Ett pass som kapas mitt i en post förlorar mer än posten: dashboarden står halvfärdig, arbete är ocommittat, och nästa session ärver ett träd ingen kan tolka. Det är den dyraste utgången som finns, och den är helt förebyggbar — gränserna går att läsa av i förväg.
+
+**Du får siffrorna injicerade, du behöver inte fråga efter dem.** En rad som börjar med `[arbetsbudget]` kommer vid varje ny prompt, efter varje subagent, och under autonomt arbete så fort läget ändrats. Den bär orkestratorns context-fönster, femtimmarsfönstret (med återställningstid och en framskrivning av takten) och veckoförbrukningen. Behöver du den på begäran: `$CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --show`.
+
+**Och vid varje ny `batch-worker` säger `batch-guard` till** om läget kräver det. Tre lägen, och de betyder olika saker:
+
+| Läge | Villkor | Vad du gör |
+|---|---|---|
+| **kör** | inget av nedanstående | Starta nästa post fritt. |
+| **ryms** | 5h ≥ 75 % · takten når taket inom 45 min · orkestratorns context ≥ 75 % | Starta **bara** en post som hinner bli klar och committad. Välj kort framför stor. |
+| **avsluta** | 5h ≥ 90 % · takten når taket inom 20 min · orkestratorns context ≥ 85 % | **Starta ingen ny post.** Gå över till avslutsprotokollet nedan. |
+
+⚠️ **Avslutet är inte gratis — det är själva poängen med tröskeln.** Frysa dashboarden, före/efter-grinden, doc-hygien-GATE:n, cache-rensningen, starta servrar och verifiera länklistan: tiotals minuter. Börjar du när mätaren står på noll blir det inget avslut alls. Reserven är satt till **20 minuter** och är en *uppskattning* — kalibrera den mot verkliga avslut och justera `AVSLUTSRESERV_MIN` i `bin/runtime-status.py`.
+
+**Avslutsprotokoll när läget slår om till `avsluta`:**
+
+1. **Committa allt som är klart**, per post med explicit fillista (aldrig `git add -A` när flera agenter kört).
+2. **Sätt kvarvarande poster till `waiting`** i `-data.js` och frys dashboarden med den status den faktiskt har. En post som ser `running` ut i en fryst rapport är en lögn nästa session får betala för.
+3. **Skriv `reports/<bas>-state.md`** — körordning, vad som är gjort, nästa `waiting`-post, "så här återupptar du". Kör subagenter fortfarande: be var och en om en WIP-överlämning först.
+4. **Resten av avslutet enligt `webapp-batch`-skillen** — före/efter-grind, doc-hygien-GATE, cache-rensning, länklistan sist.
+5. **Säg i slutrapporten att passet avslutades på budget**, inte för att listan tog slut, och vilka poster som blev över. En rapport som inte skiljer på "klart" och "hann inte" är oanvändbar för planeringen av nästa batch.
+
+⚠️ **Vakten blockerar aldrig, och den vet inte allt.** Den kan inte se hur stor nästa post är, bara hur mycket budget som finns. Är posten liten och läget `ryms` — kör. Är avslutet redan gjort och detta är en medveten extrapost — kör. Beslutet är ditt; hooken ser bara till att du fattar det med siffrorna framför dig.
+
+⚠️ **Tystnad betyder "oförändrat", inte "gott om budget".** Injektionen stryps för att inte kosta tokens. Vid tveksamhet, fråga mätaren.
+
 ## DoD per post
 - Logik rörd → projektets test/verify-kommando grönt (uppdatera delad fixtur/golden data om svarsform/logik ändrats).
 - GUI → typecheck + token-lint + före/efter-skärmdump.

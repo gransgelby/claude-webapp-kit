@@ -139,8 +139,15 @@ inget, men tystnar bara när riggningen faktiskt är gjord.
 
 ### Kontinuitet i ett bevakat pass — lämna inte tillbaka mellan vågor
 `long-run` äger det obevakade passet; det här gäller när användaren är **vaken** och tittar på
-dashboarden. Regeln är densamma ändå: **kör vidare tills listan är slut eller användaren avbryter.**
+dashboarden. Regeln är densamma ändå: **kör vidare tills listan är slut, användaren avbryter, eller
+arbetsbudgeten säger stopp.**
 Rapportera vid **milstolpar** (batchen riggad · halvvägs · klar), inte efter varje block av poster.
+
+**Den tredje utgången är ny och den är inte valfri.** En rad som börjar med `[arbetsbudget]`
+injiceras löpande, och `batch-guard` säger till vid varje ny post när 5h-fönstret eller
+orkestratorns context börjar ta slut. Slår läget om till `avsluta`: **starta ingen ny post**, gå
+över till avslutet nedan medan det finns budget kvar att göra det med. Trösklar, avslutsprotokoll
+och varför reserven finns: `long-run`-skillen, *Arbetsbudget*.
 
 Skälet är uppmätt: i ett verkligt pass slutade varje våg med ett svar i chatten, och användaren frågade
 **tre gånger** under samma pass om något kraschat eller avbrutits. Ett svar i chatten läses som *"jag är

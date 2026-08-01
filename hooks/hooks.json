@@ -10,6 +10,40 @@
           {
             "type": "command",
             "command": "$CLAUDE_PLUGIN_ROOT/bin/session-pointer.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --hook"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --hook"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --hook"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --hook"
           }
         ]
       }
