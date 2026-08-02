@@ -1,7 +1,7 @@
 {
   "name": "webapp-kit",
   "description": "Ett arbetssätt för att bygga webbappar med Claude Code: batch-jobb med live-dashboard, obevakade långpass med subagenter, doc-roll-system, en visuell design-process (shadcn + tokens), en skeppad DesignTool + <PageGrid>-primitiv och skärmdumps-tooling. Paketerar konventioner som annars lever löst i CLAUDE.md.",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "author": {
     "name": "Andreas"
   },

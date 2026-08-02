@@ -38,6 +38,21 @@ visa"* från *"glömdes"*; ett tomt fält betyder i praktiken det senare.
 - **Tier B (förslags-utkast):** bygg + self-verifiera (typecheck/tester/demo renderar) + fånga före/efter, men verifiera **inte** interaktivt — det gör människan. Om posten ska ligga bakom en flagga/route så att den inte ersätter dagens vy live: respektera det.
 - Har du en fråga som blockerar posten → returnera den som en tydlig fråga i stället för att gissa; halta inte.
 
+## ⚠️ SKRIV RAPPORTEN TILL FIL — returtexten är inte en pålitlig kanal
+
+**Innan du returnerar: skriv hela redovisningen till `reports/<bas>-<post>-rapport.md`**, och skriv
+den **löpande medan du arbetar** i stället för som sista handling. Samma rubriker som listan nedan.
+
+Skälet är mätt, inte befarat: i ett verkligt pass 2026-08-01→02 returnerade tre agenter i rad ett
+enda ord — *"Väntar."*, *"Inväntar instruktion."*, *"Klart."* — efter tjugo till fyrtio minuters
+arbete och hundra verktygsanrop. Koden fanns i trädet, men **hela redovisningen var borta**:
+pixeldiff-talen, kravändringens skäl, vilken bild som visade vad. Orkestratorn fick mäta om två
+posters pixeldiff själv för att kunna committa dem med ett kvitto. Från den post där rapporten
+började skrivas till fil gick ingenting förlorat igen.
+
+Filen är alltså **postens leverans jämte koden**, inte en kopia av returtexten. Returnera ändå
+sammanfattningen nedan — men utgå från att bara filen når fram.
+
 ## Returnera (kompakt — detta är allt orkestratorn ser)
 1. **Status:** klar / väntar sign-off (Tier B) / blockerad (med orsak).
 2. **Vad du gjorde** — 2–4 meningar.

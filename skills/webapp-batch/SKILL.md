@@ -131,6 +131,13 @@ inget, men tystnar bara när riggningen faktiskt är gjord.
 - **"Kräver din input"-läge:** en post som halvvägs visar sig inte kunna slutföras autonomt → sätt `phase:"input"` + `question`. **Halta inte hela batchen** — fortsätt med andra autonoma poster medan du väntar, väv in svaret när det kommer.
 - **Bakgrundsfoton — EN PER POST, med egen kommentar.** Antalet bilder ska matcha antalet poster i batchen (golv ~6, tak ~20 så nedladdningen inte skenar). Skälet är att en lång batch är något användaren **tittar på** i timmar, och fyra bilder som cyklar blir tapet.
   - **Sprid temat.** Femton foton på samma motiv är tråkigt. Härled **3–5 söktema** ur batchen och fördela antalet mellan dem: dess *ämne* (det appen handlar om), dess *metod* (granskning, mätning, källkritik), dess *lynne* (nattarbete, städning, optimering), plus ett **jokertema** som knyter an till användaren, orten eller årstiden. En batch som mest är städning och optimering kan alltså ha en städbild, en depåstopp-bild och en bild på ett välordnat verktygsskåp — alla relevanta, ingen likadan. Kör `batch-bg.py` en gång per tema med var sin andel av antalet.
+  - ⚠️ **Kontrollera att fotona inte är för MÖRKA — dashboarden är mörk och lägger en scrim som
+    tar upp till 78 % av ljuset.** Uppmätt 2026-08-02: av tretton foton låg fyra under
+    medelluminansen **100 av 255**, och de blev platta mörka fält som läser som *ingen bakgrund
+    alls*. Användaren rapporterade det som en bugg (*"bakgrunden saknas"*) fast bilden laddade
+    felfritt. Sikta på ljusa motiv — dagsljus, exteriörer, papper, ritningar — och välj bort
+    mörka interiörer. Enklaste mätningen är att rita bilden till en liten canvas i webbläsaren
+    och medelvärdesbilda; ett foto under ~100 hör inte hemma på en mörk yta.
   - **Skriv en `note` per bild** — en eller två meningar som binder just det fotot till batchen, till dagen, till användaren eller till platsen. Det är den som gör bilderna värda att titta på i stället för att bara vara bakgrund. Mallen visar den som bildtext medan bilden syns, och i bildväljaren i peek-läget.
     ```js
     "bgImages": [ {"file":"bg1.jpg","note":"…","credit":"Fotograf, «Titel» · Wikimedia Commons (CC BY 2.0)"}, … ]

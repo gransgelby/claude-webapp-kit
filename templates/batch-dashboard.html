@@ -472,8 +472,15 @@
   }
   function cardSig(it,prev){return [it.phase,it.size,it.activity||"",it.note||"",it.before||"",it.after||"",prev?1:0,
     it.t0||"",it.t1||"",it.tokens||"",it.subagenter||""].join("|");}
+  // ⚠️ EN OKÄND FAS FÅR ALDRIG TÖMMA TAVLAN. Till 2026-08-02 slogs fas(it.phase) upp oskyddat:
+  // orkestratorn skrev phase:"running" (giltigt som TOPPNIVÅ-status, inte som fas), uppslaget gav
+  // undefined, buildCard kastade på FÖRSTA kortet — och hela kortlistan försvann utan
+  // felmeddelande. Användaren satt framför en tom dashboard i två timmar och trodde det var
+  // webbläsarens cache. Ett okänt värde ska synas som ett okänt värde, inte radera rapporten.
+  var PH_OKÄND=["⚠ okänd fas","var(--block)",50];
+  function fas(p){return PH[p]||PH_OKÄND;}
   function buildCard(c,it,prev){
-    var ph=PH[it.phase],col=ph[1];
+    var ph=fas(it.phase),col=ph[1];
     c.className="card "+(it.size||"liten")+(it.phase==="done"?" done":"")+(it.phase==="input"?" needinput":"")+(it.phase==="active"?" act":"")+(prev?" prev":"");
     var fillBg=it.phase==="done"?"linear-gradient(90deg,#0f5c42,#178a61)"
       :it.phase==="input"?"linear-gradient(90deg,#6b4409,#a06a12)"
