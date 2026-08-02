@@ -75,13 +75,27 @@ Widgetens svar är **indata, inte ett startkommando.** Innan en enda post påbö
 3. **Ställ alla frågor** som krävs för att köra autonomt — samla dem i **en** omgång, inte droppvis. Använd `AskUserQuestion` för rena val.
 4. **Svara på utmaningar** i kommentaren: förklara varför en 🔴/🟡-post kräver närvaro och **omklassificera** till 🟢/🟡 om den går att lösa med inledande frågor.
 5. **Redovisa reserven och svansposten.** Säg vilka poster som ligger i reserv och i vilken ordning de plockas in, och namnge den **svanspost** som gör att passet inte kan stanna i förtid (`long-run`, *Ett pass får aldrig stå stilla*). Användaren ska veta vad som händer med natten om allt går fortare än väntat — annars är reserven ett löfte hen inte kan lita på.
-6. **Vänta på ett svar.** Steget är en grind, inte en avisering. Användaren ska hinna säga *"nej, X är viktigare än du tror"* eller *"varför är Y inte med?"* innan agenterna startar — det är hela skälet till att ordningen inte sätts i widgeten.
+6. **Fråga om adversariell granskning per post — det är ett KOSTNADSBESLUT och därför
+   användarens.** `long-run`s verifierar-steg låter en andra subagent dubbelkolla varje
+   Tier A-kodpost före commit. Det kostar uppskattningsvis **30–50 % fler tokens** över ett
+   pass. Ställ frågan här, medan användaren är vaken och kan väga den mot sin veckoförbrukning
+   — inte kl. 02 när orkestratorn tar den i tysthet. **Skriv svaret i `reports/<bas>-state.md`**,
+   eftersom den filen läses om vid varje återupptagning medan den här skillen inte gör det.
+   Säg vad det köper: i passet 2026-08-01→02 kördes granskningen noll gånger, och morgonens
+   oberoende granskning hittade tio felaktiga utfallspåståenden — två av dem tal som ärvts i
+   stället för mätts, alltså precis det en granskare letar efter.
+7. **Vänta på ett svar.** Steget är en grind, inte en avisering. Användaren ska hinna säga *"nej, X är viktigare än du tror"* eller *"varför är Y inte med?"* innan agenterna startar — det är hela skälet till att ordningen inte sätts i widgeten.
 
 Avvik gärna från användarens prioritet när mekaniken kräver det (en liten post som låser upp tre stora ska ligga först även om den är lågprioriterad) — men **säg att du avviker och varför**. Prioritet som tyst ignoreras är sämre än ingen prioritet alls.
 
 ## Steg 3 — Körning med LIVE-dashboard (samma fil = slutrapporten)
 
-**Körmotor (standard, inget separat val):** driv körningen med `long-run`-spelboken — **en subagent (`batch-worker`) per post** i eget context så huvudloopen hålls lätt och context-fönstret sparas. Sekventiellt för fil-rörande poster (undvik krock), parallellt för read-only research/audit; huvudloopen committar per klar post. Detta är default så fort en batch startas ("starta batchjobb") — användaren behöver **inte** be om subagenter separat. Läs `long-run`-skillen för tiers A/B, adversariell verifiering och circuit-breaker. (Undantag: en pytteliten batch som uppenbart ryms i ett context-fönster kan köras inline — men vid minsta tvekan, subagenter.)
+**Körmotor (standard, inget separat val):** driv körningen med `long-run`-spelboken — **en subagent (`batch-worker`) per post** i eget context så huvudloopen hålls lätt och context-fönstret sparas. Sekventiellt för fil-rörande poster (undvik krock), parallellt för read-only research/audit; huvudloopen committar per klar post. Detta är default så fort en batch startas ("starta batchjobb") — användaren behöver **inte** be om subagenter separat. ⚠️ **KÖR `Skill(webapp-kit:long-run)` INNAN första posten startas — läs den inte "vid behov".**
+En hänvisning är inte en laddning, och skillnaden är mätt: i ett verkligt pass 2026-08-01→02
+startades tretton poster utan att `long-run` någonsin lästes, och **verifierar-steget kördes
+därför noll gånger av tolv**. Orkestratorn visste inte att det fanns. Morgonens oberoende
+granskning hittade tio felaktiga utfallspåståenden, varav flera en granskare hade fångat direkt.
+Skillen äger tiers A/B, verifierar-steget, circuit-breaker och arbetsbudgetens trösklar. (Undantag: en pytteliten batch som uppenbart ryms i ett context-fönster kan köras inline — men vid minsta tvekan, subagenter.)
 
 **Rigga med ETT kommando — `batch-preflight.mjs` gör hela steget och vägrar när det ska vägra:**
 ```

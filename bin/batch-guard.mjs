@@ -102,6 +102,46 @@ const PÅMINNELSE = [
   "påminnelse.",
 ].join("\n");
 
+/** Sant om någon dashboard i katalogen bär minst en post i fasen `done`. */
+function harCommittadPost(rot) {
+  const rapporter = path.join(rot, "reports");
+  let filer;
+  try {
+    filer = fs.readdirSync(rapporter);
+  } catch {
+    return false;
+  }
+  for (const f of filer) {
+    if (!f.endsWith("-data.js")) continue;
+    try {
+      // Hela filen den här gången: `phase` står per kort och kan ligga långt ned. Kostnaden
+      // är en läsning av en fil som är megabyte-stor först när den bär base64-bilder — och
+      // då är passet ändå långt gånget. Fel här ska tiga, inte gissa (krav 3 i filhuvudet).
+      if (/"phase"\s*:\s*"done"/.test(fs.readFileSync(path.join(rapporter, f), "utf8"))) return true;
+    } catch {
+      // en fil som inte går att läsa är inte ett bevis åt något håll → hoppa den
+    }
+  }
+  return false;
+}
+
+const VERIFIERARE = [
+  "[webapp-kit] ⚠️ Kördes föregående post genom VERIFIERAR-STEGET innan du committade den?",
+  "· `long-run` kräver att en ANDRA subagent adversariellt dubbelkollar varje Tier A-kodpost. " +
+  "Peka den på `git show <sha>` — inte på arbetsträdet — så kan den köra parallellt med den " +
+  "här posten utan att ni trampar på varandra.",
+  "· Instruera den uttryckligen: ändra inga filer, kör ingen skrivande git, och kör INTE " +
+  "testsviten (trädet är i rörelse — ett rött resultat vore någon annans arbete).",
+  "· Verifiera den föreslagna ÅTGÄRDEN, inte bara fyndet. Ett åtgärdsförslag är också en " +
+  "hypotes, och den prövas nästan aldrig.",
+  "· ⚠️ Varför du får den här påminnelsen: i passet 2026-08-01→02 kördes steget NOLL gånger " +
+  "av tolv, därför att regeln bara stod i en skill som aldrig lästes. Morgonens oberoende " +
+  "granskning hittade tio felaktiga utfallspåståenden, varav två tal som ärvts i stället för " +
+  "mätts. Just den sortens fel letar en granskare efter.",
+  "· Har användaren sagt nej till granskning per post i frågerundan, eller är den redan gjord " +
+  "— kör vidare. Hooken blockerar aldrig.",
+].join("\n");
+
 /** Budgetpåminnelsen, eller null när läget inte kräver någon. */
 function budgetPåminnelse() {
   let snap;
@@ -162,7 +202,17 @@ function main() {
   // Projektroten först (satt av Claude), stdin:s cwd som fallback. Samma katalog två
   // gånger kostar en readdir extra i värsta fall — inte värt en dedupliceringsbugg.
   const rötter = [process.env.CLAUDE_PROJECT_DIR, inn?.cwd, process.cwd()].filter(Boolean);
-  if (!rötter.some((rot) => harLevandeDashboard(rot))) delar.push(PÅMINNELSE);
+  const levandeRot = rötter.find((rot) => harLevandeDashboard(rot));
+  if (!levandeRot) delar.push(PÅMINNELSE);
+
+  // Verifieraren sist: den gäller bara inuti en levande batch, och bara när minst en post
+  // redan är committad — annars finns ingenting att granska och påminnelsen vore brus.
+  //
+  // ⚠️ Frågan ställs mot SAMMA katalog som bär den levande dashboarden, aldrig mot hela
+  // rot-listan. Listan bär `process.cwd()` som sista utväg, och den kan peka på ett HELT
+  // ANNAT projekt än det batchen kör i — uppmätt 2026-08-02, då en provkörning läste ett
+  // grannprojekts färdiga poster och påminde om en granskning som inte hörde dit.
+  if (levandeRot && harCommittadPost(levandeRot)) delar.push(VERIFIERARE);
 
   if (delar.length === 0) return;
 
