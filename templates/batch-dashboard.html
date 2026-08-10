@@ -39,21 +39,28 @@
   html.peek .credit{transform:translateY(220%)}
   html.peek .dbtn{transform:translateX(-220%)}
   html.peek .scrim{opacity:0}
-  .pbtn{position:fixed;right:.7em;bottom:.55em;z-index:9;font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;
-    color:var(--tx);background:#0f1f18cc;border:1px solid var(--line);border-radius:.5em;padding:.42em .8em;cursor:pointer}
+  .pbtn{position:fixed;right:.7em;bottom:.55em;z-index:9;font:600 14px -apple-system,BlinkMacSystemFont,sans-serif;
+    color:var(--tx);background:#0f1f18cc;border:1px solid var(--line);border-radius:7px;padding:7px 13px;cursor:pointer}
   .pbtn:hover{color:#fff;border-color:var(--tx3)}
   html.peek .pbtn{background:#0a120e88;border-color:#ffffff40;color:#fff;text-shadow:0 1px 3px #000a}
   /* Bildväljaren syns BARA i peek-läget: där är den enda kvarvarande kontrollen, och
      den bär bildens kredit eftersom kreditraden längst ner är utetonad. */
-  .ppager{position:fixed;right:.7em;bottom:2.5em;z-index:9;display:none;align-items:center;gap:.55em;
-    font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;text-shadow:0 1px 3px #000c;
-    background:#0a120e88;border:1px solid #ffffff33;border-radius:.5em;padding:.34em .5em;max-width:min(46em,80vw)}
+  /*__PEEK_TEXT__*/ /*__PEEK_PX__*/
+  /* Bildtexten visas HEL. Den låg tidigare på samma rad som pilarna med nowrap +
+     ellips, så den klipptes alltid och gick bara att läsa via tooltip. Nu är pagern en
+     kolumn: kontroller överst, hel bildtext under, kreditering sist. */
+  .ppager{position:fixed;right:.7em;bottom:2.5em;z-index:9;display:none;flex-direction:column;align-items:flex-start;gap:.45em;
+    font:600 15px/1.55 -apple-system,BlinkMacSystemFont,sans-serif;color:#fff;text-shadow:0 1px 3px #000c;
+    background:#0a120ee8;border:1px solid #ffffff33;border-radius:9px;padding:11px 13px;
+    max-width:min(640px,90vw);backdrop-filter:blur(4px)}
   html.peek .ppager{display:flex}
-  .ppager button{font:700 .95em ui-monospace,Menlo,monospace;color:#fff;background:#ffffff1a;border:1px solid #ffffff33;
-    border-radius:.35em;padding:.1em .5em;cursor:pointer;line-height:1.3}
+  .ppager .prow{display:flex;align-items:center;gap:.55em}
+  .ppager button{font:700 18px/1.35 ui-monospace,Menlo,monospace;color:#fff;background:#ffffff1a;border:1px solid #ffffff33;
+    border-radius:5px;padding:1px 10px;cursor:pointer}
   .ppager button:hover{background:#ffffff30}
-  .ppager .pnum{font:700 .95em ui-monospace,Menlo,monospace;white-space:nowrap}
-  .ppager .pcred{font-weight:400;opacity:.85;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ppager .pnum{font:700 16px ui-monospace,Menlo,monospace;white-space:nowrap}
+  .ppager .pnote{font-weight:400;font-size:15px;line-height:1.55;white-space:normal;overflow:visible;text-overflow:clip}
+  .ppager .pcred{font-weight:400;font-size:12.5px;opacity:.75;line-height:1.45;white-space:normal;overflow:visible;text-overflow:clip}
   .page{position:relative;z-index:2;height:100vh;display:none;flex-direction:column;padding:2.6vh 0 0}
   .page.show{display:flex}
   .app{flex:1 1 auto;min-height:0;max-width:1600px;width:100%;margin:0 auto;display:flex;flex-direction:column;justify-content:flex-end;padding:0 4.4vw}
@@ -153,6 +160,26 @@
   .detail .imgs{display:flex;gap:1.2em;flex-wrap:wrap}.detail figure{margin:0;flex:1;min-width:320px}
   .detail img{width:100%;border:1px solid var(--line);border-radius:.5em;display:block}
   .detail figcaption{font-size:.8em;color:var(--tx3);margin-top:.4em;font-weight:600;letter-spacing:.04em}
+
+  /*__SHOTS_V2__*/
+  .detail .shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1em;margin:.4em 0 1.4em}
+  .detail .shot{margin:0;cursor:zoom-in;background:rgba(6,13,10,.5);border:1px solid #ffffff14;border-radius:.6em;padding:.5em;transition:border-color .15s,transform .15s}
+  .detail .shot:hover{border-color:#2fd39a99;transform:translateY(-2px)}
+  .detail .shot img{width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top left;border:1px solid var(--line);border-radius:.4em;display:block}
+  .detail .shot figcaption{font-size:.78em;color:var(--tx3);margin-top:.5em;line-height:1.45;font-weight:400;letter-spacing:0}
+  .detail .shot .lab{display:block;font-weight:600;letter-spacing:.04em;color:var(--tx2);margin-bottom:.15em}
+  .lb{position:fixed;inset:0;z-index:9000;background:#04100bf2;display:none;flex-direction:column;align-items:center;justify-content:center;padding:3em 4.5em 1.5em}
+  .lb.show{display:flex}
+  .lb img{max-width:100%;max-height:70vh;object-fit:contain;border:1px solid var(--line);border-radius:.5em;background:#0b1512}
+  .lb .lbcap{margin-top:1.1em;max-width:56em;text-align:center;color:var(--tx2);font-size:.95em;line-height:1.65}
+  .lb .lbcap b{color:var(--tx);letter-spacing:.04em}
+  .lb .lbn{margin-top:.7em;color:var(--tx3);font-size:.78em;letter-spacing:.08em}
+  .lb .lbhint{position:absolute;left:0;right:0;bottom:.9em;text-align:center;color:var(--tx3);font-size:.72em;letter-spacing:.05em;opacity:.75}
+  .lb button{position:absolute;background:#0b2b1fcc;color:#a8f5d3;border:1px solid #2fd39a66;border-radius:.5em;font-size:1.5em;line-height:1;padding:.2em .48em;cursor:pointer;font-family:inherit}
+  .lb button:hover{background:#124632}
+  .lb .lbprev{left:.9em;top:50%;transform:translateY(-50%)}
+  .lb .lbnext{right:.9em;top:50%;transform:translateY(-50%)}
+  .lb .lbx{right:.9em;top:.9em;font-size:1em}
   .scrollhint{flex:none;text-align:center;font-size:.72em;color:var(--tx2);padding-top:.3em;opacity:.85}
   .report{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:1vh 6vw 9vh;display:none}
   .report.show{display:block}
@@ -165,14 +192,25 @@
   .rimgs{display:flex;gap:1em;margin-top:.9em;flex-wrap:wrap}.rimgs figure{margin:0;flex:1;min-width:280px}
   .rimgs img{width:100%;border:1px solid var(--line);border-radius:.45em;display:block}
   .rimgs figcaption{font-size:.72em;color:var(--tx3);margin-top:.35em;font-weight:600;letter-spacing:.04em}
+  /*__RETRO_BG__*/
+  /* Samma platta som .ritem — retrospektivet låg tidigare direkt på bakgrundsfotot,
+     vilket gjorde tidslinjens etiketter och rutnätslinjer svårlästa på ljusa motiv. */
+  .retro{background:rgba(6,13,10,.55);border:1px solid #ffffff14;border-radius:.7em;
+    padding:1.15em 1.35em .9em;margin-bottom:.85em;backdrop-filter:blur(3px)}
+  .retro .rgrid{position:relative;margin:1.5em 0 .2em}
   .tcase{border-left:3px solid;padding:.55em .95em;margin-bottom:.6em;background:rgba(6,13,10,.5);border-radius:0 .5em .5em 0}
   .tcase.must{border-color:var(--active)}.tcase.nice{border-color:var(--done)}
   .tcase h4{margin:0 0 .25em;font-size:.94em;color:#fff}
   .tcase .step{font-size:.86em;color:var(--tx2);line-height:1.55}.tcase .step b{color:#cfe8dc}
   .tsub{font-size:1em;font-weight:700;margin:1.1em 0 .5em}.tsub.must{color:#f6cf83}.tsub.nice{color:#7cf0c2}
-  /* Whole-batch celebration – ~100 flowers along the EDGES, one by one, without obscuring the content. */
-  .finale{position:fixed;inset:0;z-index:5;pointer-events:none;overflow:hidden;display:none}
+  /* Whole-batch celebration – ~100 flowers along the edges of the CURRENT VIEW, anchored to the page and cleared after the show. */
+  /*__FINALE_V2__*/
+  /* ABSOLUT, inte fixed: rutan sätts i dokumentets koordinater till den vy man såg när
+     firandet startade (se celebrate()). Blommorna blir därmed kvar på sidan i stället för
+     att följa med i scrollen och skymma rapporten. De tas ur DOM:en när showen är slut. */
+  .finale{position:absolute;left:0;width:100%;z-index:5;pointer-events:none;overflow:hidden;display:none;transition:opacity 1.8s ease}
   .finale.show{display:block}
+  .finale.fade{opacity:0}
   .ff{position:absolute;transform:translate(-50%,-50%) scale(0);line-height:0;filter:drop-shadow(0 2px 4px #000b);animation:grow .5s cubic-bezier(.2,1.4,.4,1) both}
   /* Design tool ON the dashboard – draw a box + comment, self-contained, copy-paste to chat. */
   .dbtn{position:fixed;left:.7em;bottom:.55em;z-index:8;font:600 .72em -apple-system,BlinkMacSystemFont,sans-serif;color:#241a05;background:linear-gradient(180deg,#f7d78f,#f2b34d);border:1px solid #b9831f;border-radius:.5em;padding:.42em .8em;cursor:pointer;box-shadow:0 3px 12px -4px #000a}
@@ -222,7 +260,7 @@
         <span><i class="dot" style="background:var(--test)"></i>Testar</span>
         <span><i class="dot" style="background:var(--done)"></i>Klar</span>
         <span><i class="dot" style="background:var(--block)"></i>Blockerad</span>
-        <span style="color:var(--tx3)">· kortlängd fylls med fasen · kortstorlek = jobbets storlek · <i class="camic" aria-hidden="true"></i>-ikon = har före/efter · klicka en klar post (öppnas i ny flik) · ✎ Design = rita en ruta + kommentera · <b>B</b> = visa bakgrunden</span>
+        <span style="color:var(--tx3)">· kortlängd fylls med fasen · kortstorlek = jobbets storlek · <i class="camic" aria-hidden="true"></i>-ikon = har bilder · klicka en klar post (öppnas i ny flik, klicka en bild för lightbox) · ✎ Design = rita en ruta + kommentera · <b>B</b> = visa bakgrunden</span>
       </div>
     </div>
     <div class="caption" id="caption"></div>
@@ -259,9 +297,12 @@
 <button class="dbtn peekable" id="dbtn">✎ Design</button>
 <button class="pbtn" id="pbtn">👁 Visa bakgrunden</button>
 <div class="ppager" id="ppager">
-  <button id="pprev" title="Föregående bild (←)">◂</button>
-  <span class="pnum" id="pnum">1/1</span>
-  <button id="pnext" title="Nästa bild (→)">▸</button>
+  <div class="prow">
+    <button id="pprev" title="Föregående bild (←)">◂</button>
+    <span class="pnum" id="pnum">1/1</span>
+    <button id="pnext" title="Nästa bild (→)">▸</button>
+  </div>
+  <span class="pnote" id="pnote"></span>
   <span class="pcred" id="pcred"></span>
 </div>
 
@@ -338,7 +379,11 @@
     bgEls[next].style.backgroundImage='url("'+IMG_DIR+'/'+b.file+'")';
     if(!instant){bgEls[next].classList.remove("off");bgEls[bgLayer].classList.add("off");bgLayer=next;}
     pnum.textContent=(bgIx+1)+"/"+BGS.length;
-    pcred.textContent=(b.note?b.note+" · ":"")+(b.credit||"");
+    // Bildtext och kreditering är två olika saker och sätts i var sitt element —
+    // slogs de ihop till en sträng gick de inte att sätta olika typografiskt.
+    var pn=document.getElementById("pnote");
+    if(pn)pn.textContent=b.note||"";
+    pcred.textContent=b.credit||"";
     var cr=document.getElementById("credit");
     if(cr)cr.textContent=b.credit||"";
     var cap=document.getElementById("caption");
@@ -397,15 +442,70 @@
     var d=document.getElementById("detail");
     if(!it){d.innerHTML='<h1>Okänd post: '+esc(TASK)+'</h1>';d.classList.add("show");return;}
     document.title=it.id+" · "+it.t;
-    var imgs="";
-    if(it.before||it.after){
-      imgs='<div class="imgs">'+(it.before?'<figure><img src="'+it.before+'"><figcaption>FÖRE</figcaption></figure>':'')+
-        (it.after?'<figure><img src="'+it.after+'"><figcaption>EFTER</figcaption></figure>':'')+'</div>';
+    var imgs="",sh=shotsOf(it);
+    LBS=sh;
+    if(sh.length){
+      imgs='<div class="shots">'+sh.map(function(s,k){
+        return '<figure class="shot" data-k="'+k+'" tabindex="0"><img src="'+s.src+'" alt="'+esc(s.label||s.caption||"")+'">'
+          +'<figcaption>'+(s.label?'<span class="lab">'+esc(s.label)+'</span>':'')+esc(s.caption||"")+'</figcaption></figure>';
+      }).join("")+'</div>';
     }
     d.innerHTML='<h1><span style="display:inline-block;vertical-align:-.15em">'+fl(FLW[1],'1.1em',0)+'</span>'+esc(it.id)+' · '+esc(it.t)+'</h1>'+
       '<div class="dnote">'+esc(it.note||"–")+'</div>'+imgs;
     d.classList.add("show");
+    Array.prototype.forEach.call(d.querySelectorAll(".shot"),function(f){
+      function go(){lbOpen(+f.getAttribute("data-k"));}
+      f.onclick=go;
+      f.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};
+    });
   }
+
+  /*__SHOTS_V2__*/
+  // Flera bilder per post. `shots:[{src,label,caption}]` är formatet; before/after
+  // stöds oförändrat och normaliseras hit, så äldre batchar renderar som förut.
+  // `src` får vara en data-URI ELLER en relativ sökväg till <bas>-img/ — det senare
+  // håller rapportfilen liten när en post bär sju bilder i stället för två.
+  function shotsOf(it){
+    if(it.shots&&it.shots.length)return it.shots;
+    var o=[];
+    if(it.before)o.push({src:it.before,label:"FÖRE",caption:""});
+    if(it.after)o.push({src:it.after,label:"EFTER",caption:""});
+    return o;
+  }
+  var LBS=[],lbi=0,lbEl=null;
+  function lbInit(){
+    if(lbEl)return lbEl;
+    lbEl=document.createElement("div");
+    lbEl.className="lb";lbEl.id="lb";
+    lbEl.innerHTML='<button class="lbx" aria-label="Stäng">\u2715</button>'
+      +'<button class="lbprev" aria-label="Föregående bild">\u2039</button>'
+      +'<button class="lbnext" aria-label="Nästa bild">\u203a</button>'
+      +'<img id="lbimg" alt=""><div class="lbcap" id="lbcap"></div><div class="lbn" id="lbn"></div>'
+      +'<div class="lbhint">\u2190 \u2192 bläddrar · Esc stänger</div>';
+    document.body.appendChild(lbEl);
+    lbEl.querySelector(".lbx").onclick=lbClose;
+    lbEl.querySelector(".lbprev").onclick=function(e){e.stopPropagation();lbStep(-1)};
+    lbEl.querySelector(".lbnext").onclick=function(e){e.stopPropagation();lbStep(1)};
+    lbEl.onclick=function(e){if(e.target===lbEl)lbClose()};
+    return lbEl;
+  }
+  function lbOpen(i){lbInit();lbi=i;lbDraw();lbEl.classList.add("show");}
+  function lbClose(){if(lbEl)lbEl.classList.remove("show");}
+  function lbIsOpen(){return !!(lbEl&&lbEl.classList.contains("show"));}
+  function lbStep(d){if(!LBS.length)return;lbi=(lbi+d+LBS.length)%LBS.length;lbDraw();}
+  function lbDraw(){
+    var s=LBS[lbi];if(!s)return;
+    document.getElementById("lbimg").src=s.src;
+    document.getElementById("lbcap").innerHTML=(s.label?"<b>"+esc(s.label)+"</b>":"")
+      +(s.label&&s.caption?" \u2014 ":"")+esc(s.caption||"");
+    document.getElementById("lbn").textContent=(lbi+1)+" / "+LBS.length;
+  }
+  document.addEventListener("keydown",function(e){
+    if(!lbIsOpen())return;
+    if(e.key==="Escape"){lbClose();e.stopPropagation();e.preventDefault();}
+    else if(e.key==="ArrowRight"){lbStep(1);e.stopPropagation();e.preventDefault();}
+    else if(e.key==="ArrowLeft"){lbStep(-1);e.stopPropagation();e.preventDefault();}
+  },true);
 
   function renderChrome(){
     var doneN=D.items.filter(function(i){return i.phase==="done"}).length;
@@ -492,7 +592,7 @@
       if(prev){right='<span class="ph prevtag">Från förra passet</span>';}
       else{spill=doneDeco(it.id);}
     }else{right='<span class="ph" style="color:'+col+'">'+ph[0]+'</span>';}
-    var imgic=(it.phase==="done"&&(it.before||it.after))?'<span class="imgic" title="Har före/efter-bilder – klicka (ny flik)"><i class="camic"></i></span>':'';
+    var imgic=(it.phase==="done"&&(it.before||it.after||(it.shots&&it.shots.length)))?'<span class="imgic" title="Har bilder – klicka (ny flik)"><i class="camic"></i></span>':'';
     var actTxt=(it.phase!=="done"&&it.phase!=="waiting"&&it.activity)?it.activity:"";
     c.innerHTML=fill+spill+'<div class="top"><span class="pill">'+esc(it.id)+'</span>'+imgic+'<span class="ttl">'+esc(it.t)+'</span><span class="activity">'+esc(actTxt)+'</span>'+mätare(it)+right+'</div>';
     c.onclick=it.phase==="done"?function(){window.open(location.pathname+"?task="+it.id,"_blank");}
@@ -526,8 +626,15 @@
     if(!(allDone&&D.status==="done"))return;
     localStorage.setItem(LS+"fin","1");
     ensureAudio();
-    var f=document.getElementById("finale");f.classList.add("show");
-    var N=100,rf=rng(1234567);
+    var f=document.getElementById("finale");
+    /*__FINALE_V2__*/
+    // Rutan spikas i DOKUMENTETS koordinater till den vy som syns just nu. Blommorna
+    // placeras i % av den, alltså aldrig i vh/vw — annars ritas de om mot fönstret vid
+    // varje scroll och lägger sig över rapporten längre ned.
+    var sy=window.pageYOffset||document.documentElement.scrollTop||0;
+    f.style.top=sy+"px";f.style.height=window.innerHeight+"px";
+    f.classList.remove("fade");f.classList.add("show");
+    var N=100,rf=rng(1234567),DUR=7000;
     for(var i=0;i<N;i++){
       (function(k){
         setTimeout(function(){
@@ -536,12 +643,16 @@
           else if(edge===2){left=band;top=along;}else{left=100-band;top=along;}
           var sz=(1.4+rf()*2.8).toFixed(2)+"em",rot=Math.round(rf()*360);
           var s=document.createElement("span");s.className="ff";
-          s.style.top=top+"vh";s.style.left=left+"vw";
+          s.style.top=top+"%";s.style.left=left+"%";
           s.innerHTML=fl(FLW[Math.floor(rf()*FLW.length)],sz,rot);
           f.appendChild(s);plopp();
-        },k*(7000/N));
+        },k*(DUR/N));
       })(i);
     }
+    // Ett firande ska ta slut. Utan det här blev sju sekunders blomning ett permanent
+    // lager som låg kvar över rapporten resten av sessionen.
+    setTimeout(function(){f.classList.add("fade");},DUR+2200);
+    setTimeout(function(){f.classList.remove("show","fade");f.innerHTML="";},DUR+4200);
   }
 
   function copyText(t){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(t).catch(function(){legacyCopy(t)});legacyCopy(t);return Promise.resolve();}
@@ -665,7 +776,7 @@
       // Rad-etikett bär ID + kort titel (trunkeras) så man förstår vad posten var utan att minnas ID:t.
       rows+='<div style="display:flex;align-items:center;gap:.6em;margin:.2em 0"><div title="'+esc(i.id)+" · "+esc(i.t)+'" style="flex:0 0 13em;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 .78em ui-monospace,Menlo,monospace;color:var(--tx2)">'+esc(i.id)+" · "+esc(i.t)+'</div><div style="position:relative;flex:1;height:1.4em"><div style="position:absolute;left:'+l+'%;width:'+w+'%;top:.18em;bottom:.18em;background:'+col+';border-radius:.25em;min-width:3px"></div><div style="position:absolute;'+(after?'left:calc('+(l+w)+'% + .45em)':'right:calc('+(100-l)+'% + .45em)')+';top:.12em;font-size:.71em;color:var(--tx3);white-space:nowrap">'+lab+'</div></div></div>';
     });
-    return '<h2>Så gick körningen</h2>'+stats+heavyBox+'<div style="position:relative;margin:1.7em 0 .6em"><div style="position:relative;height:1.1em;margin-left:13.6em">'+labels+'</div><div style="position:relative"><div style="position:absolute;left:13.6em;right:0;top:0;bottom:0;pointer-events:none">'+lines+'</div><div style="position:relative">'+rows+'</div></div></div>';
+    return '<h2>Så gick körningen</h2><div class="retro">'+stats+heavyBox+'<div class="rgrid"><div style="position:relative;height:1.1em;margin-left:13.6em">'+labels+'</div><div style="position:relative"><div style="position:absolute;left:13.6em;right:0;top:0;bottom:0;pointer-events:none">'+lines+'</div><div style="position:relative">'+rows+'</div></div></div></div>';
   }
 
   function renderReport(){

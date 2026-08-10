@@ -156,7 +156,20 @@ inget, men tystnar bara när riggningen faktiskt är gjord.
   Hittas färre bra träffar än `--count` tar skriptet de som finns (svaret bär `wanted` kontra `got`) — hitta inte på fler. `--seed $BAS` gör urvalet reproducerbart vid omkörning; `--index N` bläddrar manuellt om temat blev fel. `bgCredit` behålls som fallback för äldre batchar utan `bgImages`.
 - **Peek-läget finns — nämn det i legenden/rapporten:** tangent **B** eller knappen nere till höger tonar bort dashboarden så fotot går att se i detalj, **← → stegar mellan batchens bilder** (auto-cykeln pausas medan man tittar), och Esc, B igen eller ett klick tar tillbaka vyn.
 - **Öppna helst över `http://localhost`** (kör `python3 -m http.server` i `reports/`) — `file://` gör att webbläsaren kan återanvända gammalt HTML utan att läsa om från disk.
-- **Före/efter på GUI-poster:** fånga "före" **innan** du redigerar; fyll `before`/`after` (base64) när posten blir klar → kamera-chip dyker upp på kortet, detaljvyn öppnas i ny flik. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py`. **Bilderna ska ligga i `reports/<bas>-img/`, aldrig i en scratchpad** — scratchpaden dör med sessionen och tar bilden med sig (regeln står också i `batch-worker`-agentens definition, eftersom det är arbetaren som skapar filen).
+- **Bilder på GUI-poster — `shots`, en array, inte ett par.** Fånga "före" **innan** du redigerar. När posten blir klar fyller du `shots` → kamera-chip dyker upp på kortet, detaljvyn öppnas i ny flik, och **ett klick på en bild öppnar en lightbox där ← → bläddrar och Esc stänger**. Varje bild bär sin egen bildtext i den förstorade vyn.
+  ```js
+  "shots": [
+    {"src":"<bas>-img/R5-fore.png",     "label":"FÖRE",                "caption":"Vad som stod där innan, och varför det var fel."},
+    {"src":"<bas>-img/R5-efter-hus.png","label":"EFTER · fritidshus",  "caption":"Vad ändringen gör i det enkla fallet."},
+    {"src":"<bas>-img/R5-efter-fyra.png","label":"EFTER · fyra byggnader","caption":"Samma ändring där den syns tydligast."}
+  ]
+  ```
+  ⚠️ **Två bilder är sällan rätt antal.** Ändrar du en underliggande funktion som slår igenom på fem ställen ska **alla fem** ligga här — annars ser granskningen en ändring den inte kan bedöma. Regeln är: **en bild per ställe utfallet faktiskt skiljer sig**, plus ett "före". Ett par räcker bara när ändringen har exakt ett utseende.
+  ⚠️ **`caption` är inte dekoration — den är det enda som gör bilden granskningsbar.** Skriv vad man ska titta på och varför just den vyn är med, inte vad filen heter. `label` är det korta (`FÖRE`, `EFTER · smal kolumn`), `caption` är meningen under.
+  **`src` får vara en relativ sökväg ELLER en data-URI.** Föredra **sökväg** när posten bär mer än två bilder — en rapport med tjugo base64-bilder blir tiotals megabyte och laddar segt.
+  **Bilderna ska ligga i `reports/<bas>-img/`, aldrig i en scratchpad** — scratchpaden dör med sessionen och tar bilden med sig (regeln står också i `batch-worker`-agentens definition, eftersom det är arbetaren som skapar filen).
+  Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py`.
+  **Bakåtkompatibelt:** `before`/`after` fungerar oförändrat och normaliseras till två `shots` med etiketterna FÖRE/EFTER. Nya poster ska ändå skriva `shots` — kompositbilder (före|efter i samma PNG) är nu **sämre** än två separata, eftersom lightboxen förstorar varje bild för sig.
 
 ### Kontinuitet i ett bevakat pass — lämna inte tillbaka mellan vågor
 `long-run` äger det obevakade passet; det här gäller när användaren är **vaken** och tittar på
@@ -225,7 +238,7 @@ Lägg **detaljerade testfall** sist, i data-fältet `tests: { must: [...], nice:
 ## Slut — dashboarden fryses, doc-hygien-GATE
 När allt är klart fryses statusen och samma fil blir **slutrapporten**. Ge **bara sökvägen** i chatten (inline-bilder är token-tunga / syns ej i schemalagda pass). `reports/*`-artefakterna är **ephemeral** (gitignorerade) — kopieras aldrig in i doc-filerna.
 
-**Före/efter-grind vid frysningen.** Gå igenom varje `done`-post som rörde något visuellt och kontrollera att `before`/`after` faktiskt är **ifyllda i datafilen**. Instruktionen finns redan högre upp, men den är lätt att missa i en lång körning: subagenter producerar kompositer, orkestratorn klistrar sökvägen i chatten, och dashboarden fryses med tomma bildfält — vilket hände i en verklig batch och fick upptäckas av användaren efteråt. Kompositerna ligger dessutom ofta i en scratchpad som försvinner med sessionen, medan `reports/<bas>-img/` överlever. Saknas en bild: kopiera in den och koppla den, eller skriv i postens `note` **varför** den saknas. Öppna dashboarden en gång efter frysningen och kontrollera att inga bildlänkar är brutna.
+**Bildgrind vid frysningen.** Gå igenom varje `done`-post som rörde något visuellt och kontrollera att `shots` faktiskt är **ifylld i datafilen** — med **bildtext på varje bild** och med en bild per ställe utfallet skiljer sig, inte bara ett före/efter-par. Instruktionen finns redan högre upp, men den är lätt att missa i en lång körning: subagenter producerar kompositer, orkestratorn klistrar sökvägen i chatten, och dashboarden fryses med tomma bildfält — vilket hände i en verklig batch och fick upptäckas av användaren efteråt. Kompositerna ligger dessutom ofta i en scratchpad som försvinner med sessionen, medan `reports/<bas>-img/` överlever. Saknas en bild: kopiera in den och koppla den, eller skriv i postens `note` **varför** den saknas. Öppna dashboarden en gång efter frysningen och kontrollera att inga bildlänkar är brutna.
 
 **Doc-hygien-sweep är en GATE, inte på-begäran:** innan batchen förklaras klar, kör doc-hygien-skillen — svep alla doc-filer, trimma dubbletter/felplacerat, distillera **en** kort klar-post i history + ta bort klara backlog-poster.
 

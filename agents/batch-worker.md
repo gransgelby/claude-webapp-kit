@@ -11,7 +11,9 @@ Prompten ger dig en post (titel, scope, ev. defaults/svar från frågerundan, oc
 
 ## Self-verifiering (obligatorisk — matcha efter vad du rörde)
 - **Logik-/analys-/backend-ändring:** kör **projektets test/verify-kommando** och se att den är grön. Rörde ändringen delad fixtur/golden data (svarsform, kriterier, scoring) → uppdatera den så demon/exempeldatan förblir komplett.
-- **GUI-/styling-ändring:** kör typecheck + token-lint (`${CLAUDE_PLUGIN_ROOT}/bin/check-design-tokens.mjs`) och fånga **före/efter**. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` (element-skärmdump) + `${CLAUDE_PLUGIN_ROOT}/bin/compose.py` (före|efter-komposit). Verifiera visuellt.
+- **GUI-/styling-ändring:** kör typecheck + token-lint (`${CLAUDE_PLUGIN_ROOT}/bin/check-design-tokens.mjs`) och **fånga bilder**. Verktyg: `${CLAUDE_PLUGIN_ROOT}/bin/shot.mjs` (element-skärmdump). Verifiera visuellt.
+  **Returnera en `shots`-lista, inte ett före/efter-par:** `[{src,label,caption}, …]`, där `src` är en sökväg under `reports/<bas>-img/` (**aldrig en scratchpad — den dör med sessionen**), `label` är kort (`FÖRE`, `EFTER · fyra byggnader`) och `caption` säger **vad man ska titta på och varför just den vyn är med**. Dashboarden visar dem som miniatyrer och förstorar den man klickar på i en lightbox med piltangenter.
+  ⚠️ **En bild per ställe utfallet faktiskt skiljer sig, plus ett "före".** Slår din ändring igenom på fem ställen ska alla fem med — två bilder räcker bara när ändringen har exakt ett utseende. Gör **inte** längre en komposit med före|efter i samma PNG: lightboxen förstorar varje bild för sig, så en komposit blir två halva bilder i stället för två hela.
 - **Varje fixad bugg får ett regressionstest** — helst på den rena logiken, annars en smoke.
 - **Mocka alla externa API:er** i test — aldrig riktiga nät-anrop.
 
