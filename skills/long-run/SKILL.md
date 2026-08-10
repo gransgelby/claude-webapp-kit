@@ -22,6 +22,35 @@ För en **stor eller obevakad** körning: en lång autonom session som lutar sig
 ## Harness — subagent per post (bevara huvud-context)
 För **varje** post: spawna en **`batch-worker`-subagent** (`Agent`-verktyget) i eget context-fönster som gör hela posten och returnerar en **kort sammanfattning** (+ filer + verify-resultat). Huvudloopen håller bara sammanfattningarna → context växer långsamt.
 
+### ⚠️ Returtexten är ett smalt rör — leveransen ska till DISK
+
+**Bara en agents SISTA meddelande når orkestratorn.** Allt den skrivit tidigare i sin egen loop
+är borta när den avslutar, och agenter avslutar gärna med en kvittens i stället för med sitt
+resultat. Därför gäller, för **varje** subagent oavsett typ:
+
+> **Är leveransen mer än en mening — skriv den till en fil och returnera sökvägen plus tre rader.**
+> Skriv den **löpande medan arbetet pågår**, inte som sista handling: då överlever den även att
+> agenten dör mitt i.
+
+⚠️ **Regeln fanns men bodde på fel ställe, och det kostade två gånger.** Den stod bara i
+`agents/batch-worker.md`, alltså i EN agents definition — så den skyddade `batch-worker` och
+ingenting annat. Utfallet:
+
+- **2026-08-01→02:** tre `batch-worker` i rad returnerade ett enda ord — *"Väntar."*,
+  *"Inväntar instruktion."*, *"Klart."* — efter 20–40 minuters arbete och hundra verktygsanrop.
+  Koden fanns i trädet, redovisningen var borta. Regeln skrevs då in i `batch-worker.md`.
+- **2026-08-11:** tre `Explore`-agenter i ett doc-svep gjorde samma sak — *"Klart."*,
+  *"rapporten står i mitt första svar"* — efter 425 k tokens och 137 verktygsanrop. De bär inte
+  `batch-worker`s definition, så regeln fanns inte för dem. En av dem upprepade kvittensen även
+  efter en uttrycklig uppmaning att redovisa; först när uppdraget bytte till *"skriv rapporten
+  till `reports/doc-svep-B.md`"* kom resultatet fram.
+
+**Det är samma klass av fel som 0.1.16** (*"verifierar-steget kördes noll gånger av tolv, för att
+regeln bodde i en fil ingen läste"*): rätt regel, fel hemvist. **Skriv regeln i uppdraget varje
+gång du delegerar till något annat än `batch-worker`** — `Explore` och `general-purpose` kan inte
+läsa den härifrån. Och observera att `Explore` **inte kan skriva filer** (ingen `Write`/`Edit`);
+ska en granskare leverera en rapport till disk måste den vara `general-purpose`.
+
 - **Sekventiellt för fil-rörande poster** — undvik att två subagenter skriver samma fil samtidigt.
 - **Parallellt för read-only-poster** (research, audit, deep-research) — inga fil-krockar → kör flera på en gång.
 

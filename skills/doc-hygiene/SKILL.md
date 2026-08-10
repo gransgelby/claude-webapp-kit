@@ -107,6 +107,22 @@ commit-shas och inget annat sammanhang — samma skäl som gör en oberoende kod
 värd sin kostnad. I ett verkligt pass underkändes fyra av sex kodposter av en sådan
 granskare, *ingen på beteendet, alla på redovisningen*.
 
+⚠️ **Svepagenten SKRIVER sin rapport till `reports/doc-svep-<datum>.md` — den returnerar
+den inte.** Bara en agents sista meddelande når orkestratorn, och agenter avslutar gärna
+med en kvittens i stället för med sitt resultat; skälet och de två mätta fallen står i
+`long-run` under *Returtexten är ett smalt rör*. Följden här är konkret: **svepagenten
+måste vara `general-purpose`, inte `Explore`** — `Explore` saknar `Write` och kan alltså
+inte leverera en rapportfil. Orkestratorn läser filen och **applicerar fynden själv**;
+den som sveper ändrar inga doc-filer, dels för att flera parallella svepare annars
+krockar i samma filer, dels för att orkestratorn vet vad som ändrats med avsikt i passet
+och svepagenten inte gör det.
+
+**Dela upp svepet på flera parallella agenter när dokumentmängden är stor** — en per
+filgrupp, med var sin rapportfil (`-A`, `-B`, `-C`). De är läsande och kan därför köra
+samtidigt utan att trampa på varandra. Ge var och en uttryckligen en lista över vad som
+ändrats med avsikt i det här passet, annars rapporterar de dina egna färska ändringar
+som fynd.
+
 1. Läs alla fem doc-filer (+ ev. `docs/*-plan.md`).
 2. Leta efter: **inaktuellt** (motsäger nuläget/koden), **dubblerat** (samma fakta på
    två ställen), **felplacerat** (changelog i Project_state, referens i Backlog,

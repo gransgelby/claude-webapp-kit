@@ -42,6 +42,10 @@ visa"* från *"glömdes"*; ett tomt fält betyder i praktiken det senare.
 
 ## ⚠️ SKRIV RAPPORTEN TILL FIL — returtexten är inte en pålitlig kanal
 
+*(Den generella regeln bor i `long-run` under **Returtexten är ett smalt rör** och gäller varje
+subagenttyp, inte bara den här. Att den en gång fanns BARA här är skälet till att den kunde brytas
+igen 2026-08-11 av agenter som inte läser den här filen.)*
+
 **Innan du returnerar: skriv hela redovisningen till `reports/<bas>-<post>-rapport.md`**, och skriv
 den **löpande medan du arbetar** i stället för som sista handling. Samma rubriker som listan nedan.
 
