@@ -242,6 +242,10 @@ När allt är klart fryses statusen och samma fil blir **slutrapporten**. Ge **b
 
 **Doc-hygien-sweep är en GATE, inte på-begäran:** innan batchen förklaras klar, kör doc-hygien-skillen — svep alla doc-filer, trimma dubbletter/felplacerat, distillera **en** kort klar-post i history + ta bort klara backlog-poster.
 
+⚠️ **Kör den i en SUBAGENT med rent context, och gäller även obevakade pass.** Två skäl, båda mätta: orkestratorn är som tunnast just här, så ett inline-svep komprimeras bort — och **en agent läser sitt eget material som korrekt**, vilket gör batch-slutets svep systematiskt tunnare än ett som triggas separat. Ge svepagenten batchens commit-shas och inget annat sammanhang. `long-run` sa fram till 2026-08-11 att svepet skulle skjutas upp vid obevakade pass; den raden är rättad, eftersom uppskjutandet gick till en "morgon-review" som varken hade ägare eller trigger. **Mergen** skjuts fortfarande upp — det är en annan sak och Tier B behöver sign-off.
+
+⚠️ **Svepet är inte "dokumentera det vi nyss gjorde".** Batchens egna spår tas av DoD per post. Svepet finns för driften som **inte** hör till den här batchen — och det är därför det måste läsa alla fem filer, inte bara de rader passet rörde.
+
 ### Länklistan — sista stycket i slutrapporten, alltid
 
 **Avsluta ALLTID batchen med en kort lista över var man tar sig in**, längst ned i slutmeddelandet:

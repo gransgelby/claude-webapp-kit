@@ -91,18 +91,45 @@ det här steget billigt — se `long-run`-skillen.
 ## "Granska dokumentationen" – svepet
 
 Ett skyddsnät mot drift (rutinerna ovan minskar den men garanterar inget). Kör det
-**på begäran** och som en **obligatorisk gate i slutet av varje batch-jobb**:
+**på begäran** och som en **obligatorisk gate i slutet av varje batch-jobb** — samma
+procedur båda gångerna, det finns ingen lätt variant.
+
+⚠️ **Svepet är INTE "dokumentera det vi nyss gjorde".** Det är den vanligaste
+missuppfattningen och den som gör batch-slutets svep tunnare än ett manuellt. Batchens
+egna spår hanteras redan av DoD-listan ovan, post för post. **Svepet finns för driften
+som INTE hör till den här batchen** — ett tal från tre batchar sedan som slutat stämma,
+ett backlog-item någon byggde utan att stryka, ett nuläge som pekar på en ordning som är
+överspelad. Läser du bara det passet rörde hittar du per definition ingenting av det.
+
+⚠️ **Den som sveper får inte vara den som skrev texten.** En agent läser sitt eget
+material som korrekt. Kör svepet i en **subagent med rent context** som får batchens
+commit-shas och inget annat sammanhang — samma skäl som gör en oberoende kodgranskare
+värd sin kostnad. I ett verkligt pass underkändes fyra av sex kodposter av en sådan
+granskare, *ingen på beteendet, alla på redovisningen*.
 
 1. Läs alla fem doc-filer (+ ev. `docs/*-plan.md`).
 2. Leta efter: **inaktuellt** (motsäger nuläget/koden), **dubblerat** (samma fakta på
    två ställen), **felplacerat** (changelog i Project_state, referens i Backlog,
    backlog-idéer i Reference, osv.).
-3. **Åtgärda**: trimma dubbletter till en hemvist + länk; flytta felplacerat till rätt
+3. **Pröva varje backlog-post mot git — är den redan byggd?** Steg 4 i DoD-listan ovan
+   förutsätter att den som stängde posten *kom ihåg* att stryka den, och det är precis
+   det som inte händer när posten löstes på köpet av en annan post. Sök på postens
+   nyckelord i `git log --oneline --all` och i filträdet; hittar du bygget, stryk raden
+   och skriv i commiten vilken sha som gjorde den klar. *(Uppmätt 2026-08-11: `B7`
+   «repot saknar favicon.ico» låg kvar i backloggen fastän `app/favicon.ico` och
+   `app/icon.svg` båda fanns sedan en commit flera batchar tidigare — och raden hade
+   överlevt varje batch-slut sedan dess.)*
+4. **Åtgärda**: trimma dubbletter till en hemvist + länk; flytta felplacerat till rätt
    roll; distillera klar-poster till **en** post i Project_history och **ta bort** dem
    ur Backlog; pensionera färdiga `docs/*-plan.md`.
-4. Kontrollera att `Project_state.md` fortfarande är **kort** (inga kronologiska
-   loggar smugit in) och att alla korslänkar lever.
-5. **Rapportera** kort vad som trimmades/flyttades.
+5. Kontrollera att `Project_state.md` fortfarande är **kort** (inga kronologiska
+   loggar smugit in), att dess **Nuläge pekar på det som faktiskt är nästa** (inte på en
+   ordning som en senare batch gjort överspelad), och att alla korslänkar lever.
+   ⚠️ Genereras ett projektkort eller en statusrad ur den filen: **rendera det och läs
+   av** att raden blev rätt. Ett kort som greppar efter ett nyckelord tystnar utan att
+   klaga när nyckelordet försvinner i en omskrivning.
+6. **Rapportera** kort vad som trimmades/flyttades — och vad som kontrollerades utan
+   att något hittades, så nästa session vet vad som redan är prövat.
 
 Ephemeral artefakter (t.ex. `reports/`-dashboards) kopieras **aldrig** in i
 doc-filerna – de är engångs.

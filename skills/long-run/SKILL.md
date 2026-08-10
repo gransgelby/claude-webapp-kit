@@ -156,6 +156,8 @@ Ett pass som kapas mitt i en post förlorar mer än posten: dashboarden står ha
 
 ⚠️ **Avslutet är inte gratis — det är själva poängen med tröskeln.** Frysa dashboarden, före/efter-grinden, doc-hygien-GATE:n, cache-rensningen, starta servrar och verifiera länklistan: tiotals minuter. Börjar du när mätaren står på noll blir det inget avslut alls. Reserven är satt till **20 minuter** och är en *uppskattning* — kalibrera den mot verkliga avslut och justera `AVSLUTSRESERV_MIN` i `bin/runtime-status.py`.
 
+⚠️ **Doc-hygien-svepet har ett eget golv inuti den reserven — det är den del som alltid offrades.** Svepet ligger sist och är det enda steget vars utebliven körning inte syns någonstans: en fryst dashboard som saknas märks direkt, ett osvept `Project_state.md` märks först flera sessioner senare. **Räkna det som ~5 av de 20 minuterna och starta dess subagent FÖRE cache-rensningen och länklistan** — de två går att göra på en minut var, svepet gör det inte. Ryms det ändå inte: hoppa det **helt** och skriv ut att det är ogjort, i både `state.md` och slutrapporten. Halvt svept är den enda utgång som är värre än osvept.
+
 **Avslutsprotokoll när läget slår om till `avsluta`:**
 
 1. **Committa allt som är klart**, per post med explicit fillista (aldrig `git add -A` när flera agenter kört).
@@ -182,4 +184,15 @@ posten startar, sätt `t1 = t0 + duration_ms` och `tokens = subagent_tokens` i `
 "Så gick körningen"-sektionen (stats + tyngsta jobbet + tidslinje) i slutrapporten. Se webapp-batch-skillen.
 
 ## Slut
-När allt är gjort eller sessionen når sitt tak: **frys dashboarden**, lägg testfallen sist (måste/får-gärna), skriv en kort status i `-data.js`. För ett obevakat pass: **gör inte** doc-hygien-sweepen/mergen automatiskt — lämna det till morgon-reviewen (Tier B behöver sign-off först). Committa allt på grenen. Leverera resultatet enligt breakfast-report-skillen (bara sökvägen i chatten).
+När allt är gjort eller sessionen når sitt tak: **frys dashboarden**, lägg testfallen sist (måste/får-gärna), skriv en kort status i `-data.js`. Committa allt på grenen. Leverera resultatet enligt breakfast-report-skillen (bara sökvägen i chatten).
+
+**Mergen skjuts upp till morgon-reviewen** i ett obevakat pass — Tier B behöver sign-off först, och ogranskat arbete hör inte hemma på huvudgrenen.
+
+⚠️ **Doc-hygien-svepet skjuts INTE upp. Rättat 2026-08-11 — den här raden sa tidigare motsatsen, och det kostade riktig drift.**
+Fram till dess stod här *"för ett obevakat pass: gör inte doc-hygien-sweepen/mergen automatiskt — lämna det till morgon-reviewen"*, medan avslutsprotokollet **fyrtio rader upp** räknade upp doc-hygien-GATE:n som ett steg som ska köras, och `webapp-batch` kallade den *"en GATE, inte på-begäran"*. Tre ställen, två motsatta besked, och vid ett nattpass vann det här stycket eftersom det står under rubriken **Slut**. Följden: svepet sköts till en "morgon-review" som **varken har ägare eller trigger**, och användaren fick trigga en grundlig städning manuellt gång på gång — och den hittade varje gång sådant batch-slutet skulle ha tagit. Två mätta exempel 2026-08-11: ett backlog-item (`B7`) låg kvar fastän det byggts flera batchar tidigare, och `Project_state.md` pekade fortfarande på en batchordning som var överspelad.
+
+**Så körs det i stället — som en subagent med RENT context, aldrig inline:**
+
+- Orkestratorn är som tunnast just här, och svepet är läsning av fem filer. Att lägga det i huvudloopens sista tiondel är att garantera att det komprimeras.
+- **Den som sveper får inte vara den som skrev texten.** En agent läser sitt eget material som korrekt — samma mekanism som gjorde att fyra av sex poster i ett verkligt pass underkändes av en oberoende granskare, *ingen på beteendet, alla på redovisningen*. Ge svepagenten batchens commit-shas och inget annat sammanhang, och låt den läsa doc-filerna med nya ögon.
+- **Svepet har ett eget budgetgolv.** Ryms inte både svepet och resten av avslutet: frys dashboarden, committa, och lämna svepet **ogjort och utskrivet som ogjort** i `reports/<bas>-state.md` + slutrapporten. Ett svep som halvkörts är värre än ett som är bokfört som ej gjort, eftersom det ser gjort ut.
