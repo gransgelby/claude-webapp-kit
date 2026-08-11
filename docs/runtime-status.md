@@ -62,3 +62,52 @@ citeras, annars bryts kommandot vid mellanslaget och hooken tiger utan felmeddel
 ```bash
 $CLAUDE_PLUGIN_ROOT/bin/runtime-status.py --show
 ```
+
+---
+
+## BACKLOG · en stabil, kontinuerlig källa till ALLA usage limits
+
+**Begärt av Andreas 2026-08-11 under Batch 15.** Prioritet: hög — det här är den enda
+mätningen i hela arbetssättet som modellen inte kan lita på, och den styr när ett pass ska
+pausas.
+
+**Problemet, mätt och inte antaget.** Under Batch 15 (2026-08-11) blev kontosiffrorna stale
+och **stannade i det läget resten av passet**. Injektionsraden sa `5h 86 % · vecka 18 %` med
+märkningen «kontosiffror 351 min gamla» — alltså en avläsning från ~08.07, tagen **före**
+användarens egen nollställning 08.50. Efter den nollställningen visade mätaren i nästan sex
+timmar ett tal från det gamla fönstret, utan att någonsin uppdateras. Följden:
+
+- Orkestratorn kunde inte avgöra om läget var `kör`, `ryms` eller `avsluta`, och fick i
+  stället gissa ur klockan och användarens muntliga uppgift om när fönstret nollställs.
+- `batch-guard` upprepade `5h på 86 %` vid varje ny post — en **falsk varning** som, om den
+  hade lytts, skulle ha stoppat ett pass med gott om budget kvar.
+- Användaren satt på mobilen och kunde **inte** läsa siffran själv; frågan *«kan du visa hur
+  status är?»* gick inte att besvara med annat än «mätaren är död, här är antalet tokens jag
+  förbrukat i stället».
+
+**Varför det inte räcker att laga stale-detektionen.** Märkningen fungerade — modellen *såg*
+att talet var gammalt. Det som saknas är en **källa som faktiskt uppdateras**. Att veta att
+man är blind är bättre än att inte veta det, men det är inte det som efterfrågas.
+
+**Att utreda, i fallande ordning av trolig avkastning:**
+
+1. **Varför slutar desktop-appens femminuterslogg uppdateras mitt i en session?** Är det
+   knutet till att sessionen körs icke-interaktivt, till att den är lång, eller till att
+   fönstret nollställs? Reproducera först — utan det är resten gissningar.
+2. **`statusLine` som auktoritativ källa.** Stycket ovan bokför att desktop-appen inte körde
+   den 2026-08-01. **Pröva om det ändrats**, och om det går att få `rate_limits.*.resets_at`
+   och `context_window.*` direkt därifrån i stället för att härleda dem. Det är den enda
+   kända vägen till *exakta* tal i stället för uppskattade.
+3. **En andra, oberoende källa** som kan korsvalidera — och ett läge där de två inte är
+   överens ska sägas ut i injektionsraden, inte döljas.
+4. **Vad raden ska säga när den INTE vet.** I dag säger den ett gammalt tal med en varning
+   bredvid. Ett alternativ är att säga *«okänd sedan HH.MM»* och låta orkestratorn falla
+   tillbaka på en tokenbudget den kan mäta själv — förbrukade tokens per pass är exakt känt
+   ur subagenternas slutnotiser och gick att summera för hand när mätaren tystnade.
+5. **Vad användaren ska kunna fråga efter från mobilen.** Batch 15 visade att frågan kommer,
+   och att den inte gick att besvara. Antingen ska raden bäras in i dashboarden (som redan
+   är en webbsida användaren kan öppna var som helst), eller ska mätaren gå att läsa av på
+   begäran utan desktop-appen.
+
+**Bevis att spara:** hela förloppet 2026-08-11 ligger i App-projektet-repots
+`reports/batch-2026-08-10-spannbandet-state.md` och i den batchens commit-historik.
