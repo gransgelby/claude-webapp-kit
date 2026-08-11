@@ -84,3 +84,57 @@ Fungerar det? **Ja, och det är rätt problem som angrips.** Tre saker att veta 
 3. **Klockan, tokens och subagent-räknaren kan byggas direkt** i nuvarande skal, utan att
    layouten görs om. Rimlig ordning: (a) per-post-mätare i dagens skal, (b) händelselista +
    bilder för pågående post, (c) den nya två-kolumnslayouten med logg för klara poster.
+
+---
+
+## 6. BACKLOG · att övervaka OCH styra ett batchjobb från mobilen
+
+**Begärt av Andreas 2026-08-11 under Batch 15**, samma dag som behovet uppstod på riktigt:
+han lämnade datorn mitt i ett pågående pass och satt på mobilen resten av dagen. Prioritet:
+hög — ett obevakat pass är inte obevakat i praktiken, det är *bevakat från en telefon*.
+
+### Vad som faktiskt gick fel den dagen, mätt och inte antaget
+
+1. **Usage-siffran gick inte att läsa.** Ordagrant: *«Jag kan ju inte se usage limits här från
+   mobilen vad jag vet. Kan du visa hur status är?»* Orkestratorn kunde bara svara med
+   förbrukade tokens, eftersom kontosiffrorna dessutom var stale. Egen post i
+   `docs/runtime-status.md`; de två hänger ihop men löses på olika ställen.
+2. **Dashboarden nås inte utanför datorn.** Den serveras av `python3 -m http.server 8099` på
+   `localhost`. Från en telefon finns den inte. Hela rapportkanalen under körning är alltså
+   otillgänglig just när användaren behöver den mest.
+3. **Bilderna är det dyraste och det viktigaste.** Varje post levererar `shots` som ska
+   *tittas på*. På en mobil är lightboxen och de breda skärmdumparna av en 1512 px vy nära
+   oläsbara utan zoom.
+4. **Styrning saknas helt.** Användaren kunde be om paus, ändrad ordning eller stopp **bara
+   genom att skriva till modellen** — vilket förutsätter att sessionen är vaken och att han
+   har appen framme. Det finns ingen väg från dashboarden tillbaka till körningen.
+
+### Att utreda
+
+- **Åtkomst.** Vad är den enklaste vägen som inte kräver att användaren konfigurerar något:
+  ett värdnamn på det lokala nätet, en tunnel, eller att dashboarden publiceras som en
+  fristående fil (jfr `breakfast-report`-skillen, som redan bygger en självbärande HTML med
+  base64-inbäddade bilder)? Väg tre kräver ingen server alls och fungerar redan i dag — men
+  den är statisk, och poängen med en live-dashboard är att den *lever*.
+- **Mobilanpassningen av skalet.** Korten är byggda för ett rutnät på en bred skärm. Vad
+  krävs för att listan ska bli läsbar i en kolumn, att `shots` ska gå att svepa mellan, och
+  att bildtexten — som ofta bär hela poängen — ska synas utan att man zoomar? ⚠️ Bakgrunden
+  är ett mörkt foto med en scrim; kontrollera kontrasten i solljus, inte bara i en mörk rumsmiljö.
+- **Vad användaren behöver se på en liten yta, i prioritetsordning.** Sannolikt: kör/pausad,
+  vilken post som är igång och hur länge, hur många som återstår, senaste utfallet, och
+  **budgetläget**. Inte: hela notfältet per post.
+- **Styrning — och var gränsen går.** Pausa, återuppta, hoppa över en post och stoppa passet
+  är rimliga knappar. De kräver en kanal tillbaka till orkestratorn som i dag inte finns;
+  enklast tänkbara är att dashboarden skriver en fil som `batch-guard` läser vid varje ny
+  post. ⚠️ **Det är en styrkanal in i en körande agent** — utred vad som får styras och vad
+  som aldrig får det (t.ex. aldrig git-push, aldrig ändrad scope), och att en knapp inte kan
+  tryckas av någon annan än användaren.
+- **Aviseringar.** Ska en klar post, en underkänd granskning eller en nådd budgettröskel kunna
+  nå telefonen? I Batch 15 var det orkestratorns chattmeddelanden som bar det, och de kom bara
+  när användaren råkade titta.
+
+### Bedömning innan något byggs
+
+**Åtkomst och läsbarhet är ett annat problem än styrning, och de bör inte byggas ihop.** Det
+första är en HTML- och serveringsfråga som går att lösa på en kväll och som hade räckt hela
+2026-08-11. Det andra inför en ny säkerhetsyta och förtjänar ett eget beslut.
