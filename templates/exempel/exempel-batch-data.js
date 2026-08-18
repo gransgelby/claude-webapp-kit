@@ -3,7 +3,7 @@
 window.__applyBatch({
   "status": "done",
   "name": "Operation Kokbok",
-  "nameWhy": "Batchen samlade ihop allt som gjorde receptlistan användbar — som när lösa recept äntligen binds ihop till en kokbok.",
+  "nameWhy": "EXEMPEL — en påhittad körning som följer med webapp-kit, så att du kan se hur en färdig rapport ser ut. Namnet: batchen samlade ihop allt som gjorde receptlistan användbar, som när lösa recept binds ihop till en kokbok.",
   "saying": "Den som gapar efter mycket mister ofta hela stycket — så vi tog fyra saker, inte fjorton.",
   "bgId": "exempel-batch",
   "prevDone": [],
@@ -53,7 +53,17 @@ window.__applyBatch({
       "note": "Varje recept blev ett kort med antal portioner, tid och en färgad etikett. Korten läggs i ett rutnät som blir en spalt på mobil.",
       "t0": 1755501680000,
       "t1": 1755504140000,
-      "tokens": 63000,
+      "tokens": 63000
+    },
+    {
+      "id": "R3",
+      "t": "Sökfält som filtrerar medan man skriver",
+      "size": "stor",
+      "phase": "done",
+      "note": "Sökningen filtrerar på både namn och etikett, utan att sidan laddas om. Hittas inget visas 'Inga recept matchar' i stället för en tom yta.",
+      "t0": 1755504140000,
+      "t1": 1755508760000,
+      "tokens": 118000,
       "shots": [
         {
           "src": "exempel-batch-img/fore.png",
@@ -66,16 +76,6 @@ window.__applyBatch({
           "caption": "Sökfältet ligger nu överst med antalet recept till höger. Titta på avståndet mellan fältet och första kortet — det kommer ur samma avståndsskala som korten."
         }
       ]
-    },
-    {
-      "id": "R3",
-      "t": "Sökfält som filtrerar medan man skriver",
-      "size": "stor",
-      "phase": "done",
-      "note": "Sökningen filtrerar på både namn och etikett, utan att sidan laddas om. Hittas inget visas 'Inga recept matchar' i stället för en tom yta.",
-      "t0": 1755504140000,
-      "t1": 1755508760000,
-      "tokens": 118000
     },
     {
       "id": "R4",

@@ -94,7 +94,7 @@
   .card.medel{grid-column:span 3}
   .card.stor{grid-column:span 6}
   .fill{position:absolute;inset:0;z-index:0;border-radius:.5em}
-  .top{position:relative;z-index:1;display:flex;align-items:center;gap:.5em}
+  .top{position:relative;z-index:4;display:flex;align-items:center;gap:.5em}
   .pill{font:600 .7em ui-monospace,Menlo,monospace;color:var(--tx2);background:#0009;padding:.12em .4em;border-radius:.3em;flex:none}
   .ttl{flex:0 1 auto;min-width:0;font-size:.8em;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px #000a}
   .activity{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tx2);font-size:.76em;font-style:italic;padding-left:.75em;text-shadow:0 1px 3px #000a}
@@ -129,8 +129,11 @@
   /* Per-post-mätare: klocka · tokens · agenter. Klockan tickar medan posten pågår och
      står KVAR med sluttiden när den är klar — annars går informationen förlorad just
      när man vill jämföra posterna med varandra. */
+  /* ⚠️ z-index 4: kortens blomsterdekor ligger på 3 och la sig över tiden och tokentalet,
+     så teckenförklaringen förklarade siffror man inte kunde läsa (uppmätt 2026-08-18).
+     Texten på ett kort ska alltid vinna över dekoren. */
   .meter{flex:none;display:inline-flex;align-items:center;gap:.42em;font:600 .62em ui-monospace,Menlo,monospace;
-    color:var(--tx3);white-space:nowrap;letter-spacing:.02em;text-shadow:0 1px 3px #000a}
+    color:var(--tx3);white-space:nowrap;letter-spacing:.02em;text-shadow:0 1px 3px #000a;position:relative;z-index:4}
   .card.act .meter{color:var(--active)}
   .card.done .meter{color:#7fdcb8}
   .meter b{font-weight:700;color:inherit}
@@ -475,6 +478,10 @@
     d.innerHTML='<h1><span style="display:inline-block;vertical-align:-.15em">'+fl(FLW[1],'1.1em',0)+'</span>'+esc(it.id)+' · '+esc(it.t)+'</h1>'+
       '<div class="dnote">'+esc(it.note||"–")+'</div>'+imgs;
     d.classList.add("show");
+    //: ⚠️ detaljsidan kör aldrig initBgs, så knappen som döljs där stod kvar här och ledde
+    //: till samma kolsvarta yta (uppmätt 2026-08-18 i slutverifieringen). Peek-läget hör
+    //: hemma på tavlan, inte inuti en enskild punkt — dölj den alltid på detaljsidan.
+    var _pb=document.getElementById("pbtn"); if(_pb)_pb.style.display="none";
     Array.prototype.forEach.call(d.querySelectorAll(".shot"),function(f){
       function go(){lbOpen(+f.getAttribute("data-k"));}
       f.onclick=go;

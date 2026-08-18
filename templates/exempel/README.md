@@ -9,9 +9,12 @@ Ingenting här används av pluginet. Ta bort mappen om du vill — inget slutar 
 ## Vad du kan öppna
 
 **`exempel-batch.html`** — en färdig resultatsida. Öppna filen i din webbläsare (dubbelklicka
-räcker). Det är en avslutad omgång för en påhittad receptapp: fyra punkter, alla klara, med
-före/efter-bilder på en av dem, testfall att köra och en sammanfattning av hur körningen gick.
-Klicka på en punkt för detaljerna, och på en bild för att förstora den.
+räcker). Det är en avslutad omgång för en påhittad receptapp: fyra punkter, alla klara, testfall
+att köra och en sammanfattning av hur körningen gick.
+
+**Klicka på punkt R3 ("Sökfält som filtrerar medan man skriver")** — den har före- och
+efter-bilder som visar vad som ändrades. Klicka på en bild för att förstora den. Kameraikonen
+på ett kort betyder just att punkten har bilder.
 
 Så här ser sidan ut medan ett jobb pågår i stället: korten fylls i från vänster, den punkt som
 arbetas på är gulmarkerad med en rad om vad som händer just nu, och de som väntar står grå.
