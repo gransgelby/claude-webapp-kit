@@ -1,7 +1,7 @@
 # Dashboard v2 — från stale progressbar till levande arbetsflöde
 
 > **Roll:** plan för nästa version av batch-dashboarden (`templates/batch-dashboard.html`).
-> Inkommet från Andreas 2026-07-27, under App-projektet UI-batch. Inget av detta är byggt.
+> Inkommet från Andreas 2026-07-27, under en UI-batch. Inget av detta är byggt.
 
 ---
 

@@ -80,12 +80,14 @@ Rätta det granskningen hittade — **i felordningen nedan** — och gå tillbak
 
 ## Granskningslägen — ett kommando, inte en föresats
 
-`bin/granska-bild.mjs` producerar lägena och en kontaktkarta. Kopiera skriptet till
-konsument-projektets `scripts/` (ESM löser `puppeteer-core` relativt filen — samma skäl som
-`shot.mjs` och linterna).
+`bin/granska-bild.mjs` producerar lägena och en kontaktkarta. **Kör det där det ligger** —
+`${CLAUDE_PLUGIN_ROOT}/bin/granska-bild.mjs`. Kopiera det INTE in i projektet: sedan 0.1.21
+slås `puppeteer-core` upp från projektet (`npm i -D puppeteer-core` i projektroten räcker),
+och en kopia utan sin syskonfil `krav-puppeteer.mjs` dör med precis den råa Node-stack som
+den filen skrevs för att eliminera.
 
 ```
-node scripts/granska-bild.mjs --url http://localhost:3000 --selector "svg" \
+node "${CLAUDE_PLUGIN_ROOT}/bin/granska-bild.mjs" --url http://localhost:3000 --selector "svg" \
   --ut granskning/ --utsnitt "0,10,45,70"
 ```
 
@@ -109,8 +111,8 @@ bedöma i en helsidesbild.
 Billiga, och de fångar en annan felklass än perceptionen. Kör dem vid varje iteration.
 
 ```
-node scripts/granska-bild.mjs --svglint bild.svg      # struktur
-node scripts/granska-bild.mjs --diff a.png b.png      # skilda bildpunkter
+node "${CLAUDE_PLUGIN_ROOT}/bin/granska-bild.mjs" --svglint bild.svg      # struktur
+node "${CLAUDE_PLUGIN_ROOT}/bin/granska-bild.mjs" --diff a.png b.png      # skilda bildpunkter
 ```
 
 `--svglint` letar dubbla `id`, brutna `url(#…)`-referenser, element helt utanför `viewBox`,

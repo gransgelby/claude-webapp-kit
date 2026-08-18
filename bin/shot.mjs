@@ -8,6 +8,8 @@
 //
 // Dependency: puppeteer-core must be installed (npm i -D puppeteer-core). It drives
 // your existing Chrome; set CHROME_PATH if Chrome lives somewhere non-default.
+// Saknas paketet eller Chrome avslutar skriptet med kod 3 och ett läsbart svenskt
+// krav-fel (bin/krav-puppeteer.mjs) i stället för en rå ERR_MODULE_NOT_FOUND-stack.
 //
 // Requires: a running dev server serving the --url you pass (any host/port).
 //
@@ -18,10 +20,7 @@
 // Element selection: --selector <css>  OR  --find <text> (first element whose text
 // starts with the text; its nearest row-container is screenshotted). --full = whole page.
 
-import puppeteer from 'puppeteer-core'
-
-const CHROME = process.env.CHROME_PATH
-  || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+import { laddaPuppeteer, kravChrome, CHROME } from './krav-puppeteer.mjs'
 
 function arg(name, def) {
   const i = process.argv.indexOf('--' + name)
@@ -45,6 +44,8 @@ if (!url || !out || (!selector && !find && !full)) {
 }
 
 ;(async () => {
+  kravChrome()
+  const puppeteer = await laddaPuppeteer()
   const browser = await puppeteer.launch({
     executablePath: CHROME, headless: 'new',
     args: ['--no-sandbox', '--hide-scrollbars'],

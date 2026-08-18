@@ -1,14 +1,22 @@
 ---
-description: Code-first visual loop for fine-tuning already-built UI with Claude Code — screenshot → target-with-context → fix → re-screenshot. Trigger when fine-tuning UI, "ändra så att det ser ut så här", pixel/spacing/color/typography tweaks, "the layout looks off", or aligning a view to a target image. For structural moves or picking a design system, use design-workflow instead.
+description: Finjustera en redan byggd vy via en skärmdumps-loop — skärmdump → mål med kontext → fix → ny skärmdump. Trigga vid finjustering av UI, "ändra så att det ser ut så här", pixlar/avstånd/färg/typografi, "layouten ser konstig ut", eller när en vy ska matcha en förlagebild. För strukturella flyttar eller val av designsystem: använd design-workflow. Code-first visual loop for fine-tuning already-built UI.
 ---
 
 # Visual-iterate
+
+> **Prata inte i termerna nedan med användaren.** `tokens`, `grid`, `spann`, `komponent`,
+> `responsiv` är arbetsord — översätt dem. Tabellen finns i `kom-igang`-skillen.
 
 Finjustering av en redan byggd vy — pixlar, spacing, färg, typografi — via en kod-först visuell loop. För att flytta sektioner, välja designsystem eller sätta upp temat, se `design-workflow`.
 
 ## Grundinsikt
 
 Claude Codes inbyggda preview är ett **AI-självverifieringsverktyg, inte en visuell editor för människan**. När du klickar i previewen får *Claude* bara kontext — du kan inte direktmanipulera ett element och få koden att ändras. Därför fungerar inte "flytta 8px"-promptande: det saknas ett människo-lager för direktmanipulation. Lösningen är inte "bättre prompter" utan **skärmdumps-loopen nedan** + att låta Claude stänga loopen med sin egen skärmdump.
+
+> **Förutsättning:** loopen kräver att appen går att köra lokalt, annars finns inget att
+> fotografera. Vet du inte hur projektet startas — fråga användaren **en** gång och skriv in
+> svaret i `Reference.md` → *Körinstruktioner* (finns den filen), så nästa session slipper fråga.
+> Skärmdumparna tar du själv; be aldrig användaren fånga eller klippa dem åt dig.
 
 ## Kärnloopen
 
@@ -34,7 +42,8 @@ Efter en ändring ska Claude **rendera → skärmdumpa → jämföra mot målet 
 ## Att undvika
 
 - **"Flytta 8px" utan skärmdump** → Claude gissar blint. Ge alltid en bild.
-- **Hårdkodade värden** i fixen → bryter token-disciplinen. Justera token/Tailwind-klass, inte en rå px/hex (token-lint fångar det annars).
+- **Hårdkodade värden** i fixen → bryter token-disciplinen. Justera token/Tailwind-klass, inte en rå px/hex (token-linten fångar det bara när värdet står som en Tailwind-klass — inline-stilar och
+  .css-regler ser den inte).
 - **Allt i en prompt** → staga i tre faser istället.
 - **Strukturell flytt** (flytta en hel sektion, byt sida) hör inte hit — det är `design-workflow`s "flytta en sektion".
 

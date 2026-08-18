@@ -1,4 +1,9 @@
-# Project History – <!-- fyll i: Projektnamn -->
+# Vad som har gjorts – <!-- fyll i: Projektnamn -->
+
+> 💬 **Den här filen är Claudes minne av projektet.** Du behöver inte fylla i den själv —
+> Claude gör det efterhand medan ni jobbar. **Du behöver inte läsa den** — den är skriven
+> till Claude, inte till dig. Vill du ändå titta: säg till om något står fel. Tomma
+> `<!-- fyll i: … -->` är normala, de fylls när svaret finns.
 
 > **Roll:** *vad som gjorts.* Kronologisk, detaljerad logg över avslutade milstolper –
 > **det enda hemmet för klar-historik/changelog**. Flyttad hit ur `Project_state.md` för

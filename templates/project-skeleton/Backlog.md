@@ -1,4 +1,9 @@
-# Backlog – <!-- fyll i: Projektnamn -->
+# Att göra senare – <!-- fyll i: Projektnamn -->
+
+> 💬 **Den här filen är Claudes minne av projektet.** Du behöver inte fylla i den själv —
+> Claude gör det efterhand medan ni jobbar. **Du behöver inte läsa den** — den är skriven
+> till Claude, inte till dig. Vill du ändå titta: säg till om något står fel. Tomma
+> `<!-- fyll i: … -->` är normala, de fylls när svaret finns.
 
 > **Roll:** *vad vi kanske gör sen.* Framåtblickande spår/idéer, **en rad per spår**.
 > Texttunga planer länkas ut till `docs/<feature>-plan.md`, inlinas inte. **Klart =

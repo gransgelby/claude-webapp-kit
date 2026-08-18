@@ -1,4 +1,9 @@
-# Reference – <!-- fyll i: Projektnamn -->
+# Teknisk uppslagsbok – <!-- fyll i: Projektnamn -->
+
+> 💬 **Den här filen är Claudes minne av projektet.** Du behöver inte fylla i den själv —
+> Claude gör det efterhand medan ni jobbar. **Du behöver inte läsa den** — den är skriven
+> till Claude, inte till dig. Vill du ändå titta: säg till om något står fel. Tomma
+> `<!-- fyll i: … -->` är normala, de fylls när svaret finns.
 
 > **Roll:** *hur det är byggt.* Teknisk uppslagsbok: tech stack, projektstruktur,
 > tekniska beslut, API-gotchor, kända begränsningar och körinstruktioner. **Läs vid

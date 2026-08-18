@@ -1,4 +1,9 @@
-# App Vision – <!-- fyll i: Projektnamn -->
+# Appens vision – <!-- fyll i: Projektnamn -->
+
+> 💬 **Den här filen är Claudes minne av projektet.** Du behöver inte fylla i den själv —
+> Claude gör det efterhand medan ni jobbar. **Du behöver inte läsa den** — den är skriven
+> till Claude, inte till dig. Vill du ändå titta: säg till om något står fel. Tomma
+> `<!-- fyll i: … -->` är normala, de fylls när svaret finns.
 
 > **Roll:** *vart vi ska.* Produktvision, syfte, primär användare, designprinciper och
 > icke-mål. En **målbild**, inte en spec av nuläget – att koden avviker från visionen är

@@ -6,7 +6,7 @@ kort i ett två-panels Design mode, och spara förslag via en pluggbar adapter. 
 stylar sig med sina **egna `--dt-*`-tokens** (rör aldrig appens tokens som styling — bara
 som *data* det läser/redigerar).
 
-> **Ärligt om mognad:** detta är porterat ur en riktig app (app-projektet) och körs
+> **Ärligt om mognad:** detta är porterat ur en riktig app i produktion och körs
 > där. De app-specifika sömmarna är brutna till konfiguration/adapter, men detta är en
 > **utkast-port** — du wire:ar 3 sömmar (nedan) och verifierar i din egen app.
 
@@ -96,7 +96,7 @@ Ovanpå v2-skalmodellen (fortfarande drivet av rena, app-agnostiska moduler):
 | Live token-läsning/-skrivning för prefix `--c-` | Sätt ditt eget `tokenPrefix` i `dtConfig` om det avviker |
 | Element→fil:rad, align/distribute, colorUtils (allt testat) | — |
 
-**Skeppas INTE:** ingen backend-kod (app-projektet `design_notes.py`/`pull-design-notes`);
+**Skeppas INTE:** ingen backend-kod (ursprungsappens `design_notes.py`/`pull-design-notes`);
 inte den app-specifika **`/admin/oversikt`**-sidan (läser appens `Backlog.md` + design-notes-API
 — en app-feature, inte en återanvändbar verktygsprimitiv); inte **`RouteDesignInline`** (en
 app-specifik rutt-/kart-designpanel). Persistens är ett rent interface du fyller i adaptern.
@@ -153,7 +153,7 @@ eller bär arbiträr struktur-px). Ingen sidlista konfigurerad → linten hoppar
 - Verktyget läser kolumnantalet **live ur DOM:en** (`data-grid-cols`) → grid-agnostiskt
   (12/16/24 …). Hårdkoda aldrig gridtypen i en vy.
 - App-specifika palett-kommandon lägger du till i `commands`-arrayen i `DesignToolShell.tsx`
-  (utpekad extension-punkt) — den porterade "Rutt-design"-knappen (app-projektet-specifik)
+  (utpekad extension-punkt) — den porterade "Rutt-design"-knappen (app-specifik)
   är borttagen.
 - Token-redigering skriver en inline-var på `<html>` → cascadar live till varje element som
   använder token:en; revert = `removeProperty`.

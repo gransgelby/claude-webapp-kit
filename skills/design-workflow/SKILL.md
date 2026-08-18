@@ -1,16 +1,45 @@
 ---
-description: Token-driven pipeline for designing a new web view or app with Claude Code — wireframes → shadcn/ui against a token layer → theme with tweakcn or DaisyUI → fine-tune. Trigger when designing a new view/app, choosing a design system, moving/reordering sections, fixing empty gaps after a move, or any UI/visual-structure work.
+description: Designa en ny vy eller app, eller öppna skissverktyget ("öppna wireframe-verktyget", "jag vill skissa en layout") — skiss → komponenter mot ett token-lager → tema → finjustering. Trigga vid design av ny vy/app, val av designsystem, flytt/omordning av sektioner, tomma luckor efter en flytt, eller annat UI- och strukturarbete. Token-driven pipeline for designing a new web view or app: wireframes → shadcn/ui against a token layer → theme with tweakcn or DaisyUI → fine-tune.
 ---
 
 # Design-workflow
 
-> **Ska något RITAS** — en illustration, figur, ritning, symbol eller SVG-scen — gäller `illustrate`-skillen: fem steg med granskningsloop mot korrekthet, tydlighet och skönhet, och per-agent före helhet när flera ritar delar av samma bild.
+> **Prata inte i termerna nedan med användaren.** `tokens`, `grid`, `spann`, `komponent`,
+> `responsiv` är arbetsord — översätt dem. Tabellen finns i `kom-igang`-skillen.
+
+> **Ska något RITAS** — en illustration, figur, ritning, symbol eller SVG-scen — gäller `illustrate`-skillen: sex steg med granskningsloop mot korrekthet, tydlighet och skönhet, och per-agent före helhet när flera ritar delar av samma bild.
 
 Så designar du och strukturerar webbapp-UI när du bygger med Claude Code. Token-drivet: allt hänger på ett token-lager (CSS-variabler), så omtematisering = byt token-värden. För ren finjustering (pixlar/färg/spacing på en redan byggd vy), använd `visual-iterate`-skillen istället.
 
+## Förutsättningar (kolla stacken innan du föreslår steg 2–4)
+
+Pipelinen nedan är skriven för **React/Next.js med Tailwind, shadcn/ui och ett token-lager i
+`globals.css`**. Det är den vanligaste stacken, inte den enda — **läs vad projektet faktiskt
+kör innan du föreslår verktyg**:
+- **Annan stack** (Vue, Svelte, ren CSS, Bootstrap …): *principerna* håller — designa mot ett
+  token-lager, aldrig hårdkodade värden, grid framför absolut positionering. *Verktygen* gör
+  det inte: hoppa shadcn/tweakcn och säg det rakt ut, i stället för att föreslå ett
+  komponentbibliotek som inte passar projektet.
+- **Inget token-lager än:** att införa ett (CSS-variabler) är steg noll för allt annat här.
+- **Token-linten** (`bin/check-design-tokens.mjs [kataloger]`) ger sedan 0.1.21 aldrig grönt
+  utan täckning: läste den noll filer, eller använder filerna inte Tailwind, skriver den
+  *"grinden är inte tillämplig"* och avslutar med kod 2. **Grönt betyder numera att den
+  faktiskt granskat något** — redovisa exit 2 som HOPPAD, aldrig som godkänd.
+  ⚠️ Den kvarvarande begränsningen är en annan: linten ser bara värden skrivna som
+  **Tailwind-klasser** (`bg-[#0f172a]`, `py-[5px]`). En hårdkodad färg i en inline-stil
+  (`style={{ color: "#ff0000" }}`) eller i en `.css`-regel går igenom tyst — även i en fil
+  där linten i övrigt ger grönt. Grönt betyder alltså "inga hårdkodade **klasser**", inte
+  "inga hårdkodade värden". Läs koden själv när designen är det viktiga.
+
 ## Pipelinen (ny app eller ny vy)
 
-1. **Wireframes + kravdokument** per vy. Lo-fi räcker (Figma-boxar eller handritat) — det här handlar om **struktur & beteende**, ingen visuell polish än. Numrera skärmar/regioner så kravdokumentets referenser blir entydiga.
+1. **Wireframes + kravdokument** per vy. **Pluginet har ett skissverktyg** — öppna
+   `${CLAUDE_PLUGIN_ROOT}/bin/wireframe.html` i användarens webbläsare när hen säger *"öppna
+   wireframe-verktyget"*, *"jag vill skissa"* eller när ett nytt vy-arbete inleds. Användaren
+   vet inte var pluginet ligger på disk, så **öppna filen åt hen** (`open`/`xdg-open`, eller
+   servera den lokalt) — be aldrig hen leta upp den. Rutorna snäpper till kolumn- och radspann,
+   och knappen *Kopiera för Claude* lägger en tabell på urklipp som hen klistrar in i chatten.
+   Lo-fi räcker i övrigt (Figma-boxar eller handritat) — det här handlar om **struktur & beteende**, ingen visuell polish än. Numrera skärmar/regioner så kravdokumentets referenser blir entydiga.
 2. **Bygg med shadcn/ui-komponenter** mot ett **token-lager** (CSS-variabler i `globals.css`). shadcn är token-drivet → dina tokens driver komponenterna. En **token-lint** förbjuder hårdkodade värden.
 3. **Välj looken:** ladda upp inspirationsbilder + beskriv känslan → Claude gör ett förslag. Förankra i **token-namn** i kravlistan ("primärknapp = `--c-cta`, rubrik = h2-token, avstånd ur spacing-skalan") så precisionen + token-disciplinen överlever en rasterbild.
 4. **Tweaka temat** med **tweakcn** (visuell tema-editor för shadcn → exporterar CSS-variablerna) *eller* välj färdigt tema via **DaisyUI**. Välj EN bas: `shadcn + tweakcn` **eller** DaisyUI, inte båda (de krockar). Eftersom allt bygger på tokens är omtematisering billig — byt token-värden, hela appen skiftar look.

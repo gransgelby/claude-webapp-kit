@@ -1,4 +1,8 @@
-<h2 class="sr-only">Urvalswidget för batchen: en rad per backlog-post med läge (ja, nej, reserv) och prioritet (hög, med, låg), ett kommentarsfält och en knapp som ber om ett ordningsförslag.</h2>
+<!-- OBS: det här är ett FRAGMENT för mcp__visualize__show_widget, inte en fristående
+     webbsida. Öppnad direkt i en webbläsare saknar den både stilar och teckenkodning
+     ("fÃ¶r" i stället för "för") — det är väntat och inget fel. Widgeten ska renderas
+     av show_widget, som bär värdmiljöns CSS-variabler. -->
+<h2 class="sr-only">Urvalswidget för batchen: en rad per backlog-post med läge (med, reserv, nej) och prioritet (hög, med, låg), ett kommentarsfält och en knapp som ber om ett ordningsförslag.</h2>
 <style>
 .uw{--uw-kol:164px 14px 38px minmax(0,1fr) auto 172px;padding:.25rem 0 .5rem;font-size:14px}
 .uw-leg{display:flex;gap:18px;align-items:center;font-size:13px;color:var(--text-secondary);padding-bottom:12px}
@@ -23,11 +27,11 @@
     <span><i class="uw-dot" style="background:#EF9F27"></i>Efter frågor</span>
     <span><i class="uw-dot" style="background:#E24B4A"></i>Kräver dig</span>
   </div>
-  <div class="uw-hd"><span>Ska den med?</span><span></span><span>Post</span><span></span><span></span><span style="padding-left:2px">Prioritet</span></div>
+  <div class="uw-hd"><span>Ska den med?</span><span title="Färgen visar hur mycket du behöver vara med">Din tid</span><span>Vad</span><span></span><span title="Hur stort jobbet är">Insats</span><span style="padding-left:2px">Prioritet</span></div>
   <div id="uw-lista"></div>
   <p class="uw-hjalp">Reserv = tas in bara om natten blir klar tidigare än väntat. Körordningen sätter jag — du sätter vad som är viktigt.</p>
   <label class="uw-lbl" for="uw-komm">Kommentar — eller en utmaning mot min klassning</label>
-  <textarea id="uw-komm" rows="3" placeholder="T.ex.: I36 är viktigare än du tror, och varför är B5 inte med?"></textarea>
+  <textarea id="uw-komm" rows="3" placeholder="T.ex.: den tredje är viktigare än du tror — och varför är sökfältet inte med?"></textarea>
   <div class="uw-foot">
     <span class="uw-rakn" id="uw-rakn"></span>
     <button id="uw-go" style="background:var(--fill-accent)!important;color:var(--on-accent)!important;border:0!important;border-radius:var(--radius)!important;font-size:14px!important;font-weight:500!important;padding:9px 18px!important;box-shadow:none!important">Föreslå körordning</button>
@@ -41,7 +45,9 @@ const POSTER = [
  {id:"X3",titel:"läge: ja | reserv | nej — prio: hög | med | låg",autonomi:"dig",insats:"stor",läge:"nej",prio:"låg"}
 ];
 const UW_DOT={auto:"#97C459","frågor":"#EF9F27",dig:"#E24B4A"};
-const UW_LÄGE=[["ja","Ja"],["nej","Nej"],["reserv","Reserv"]];
+//: ordning och ord enligt webapp-batch-skillen ("Med / Reserv / Nej"). Nycklarna är
+//: oförändrade — det är etiketterna användaren läser som ska matcha specen.
+const UW_LÄGE=[["ja","Med"],["reserv","Reserv"],["nej","Nej"]];
 const UW_PRIO=[["hög","Hög"],["med","Med"],["låg","Låg"]];
 const UW_PÅ={ja:["var(--fill-accent)","var(--on-accent)"],nej:["var(--fill-control)","var(--text-primary)"],reserv:["#EF9F27","#412402"],"hög":["#D85A30","#FAECE7"],med:["#EF9F27","#412402"],"låg":["#FAEEDA","#633806"]};
 const UW_BAS="flex:1;min-width:0;border:0!important;border-radius:0!important;box-shadow:none!important;padding:6px 2px!important;font-size:12px!important;line-height:1.35;letter-spacing:0;";
@@ -71,7 +77,7 @@ uwLista.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)re
 document.getElementById("uw-go").addEventListener("click",()=>{
  const rad=l=>POSTER.filter(o=>o.läge===l).map(o=>l==="nej"?o.id:`${o.id} (${o.prio})`).join(", ")||"inga";
  const k=document.getElementById("uw-komm").value.trim();
- sendPrompt(`${BATCH} – mitt urval.\nMed: ${rad("ja")}\nReserv: ${rad("reserv")}\nNej: ${rad("nej")}\nKommentar: ${k||"(ingen)"}\n\nFöreslå körordning enligt long-run-regeln, säg vad som hamnar utanför batchen och varför, och ställ alla frågor i en omgång innan något startar.`);
+ sendPrompt(`${BATCH} – här är mitt val.\nTa med: ${rad("ja")}\nBara om det finns tid över: ${rad("reserv")}\nHoppa: ${rad("nej")}\nKommentar: ${k||"(ingen)"}\n\nFöreslå en ordning att göra dem i, säg vad som inte kom med och varför, och ställ alla frågor du har på en gång innan du börjar.\n\n(Raden här nedanför är en teknisk instruktion till Claude — du behöver inte förstå den.\nKörordning enligt long-run-regeln: atomisk före beroende, ordningsförslaget är en GRIND.)`);
 });
 uwRita();
 </script>

@@ -1,4 +1,9 @@
-# Project State – <!-- fyll i: Projektnamn -->
+# Var projektet står – <!-- fyll i: Projektnamn -->
+
+> 💬 **Den här filen är Claudes minne av projektet.** Du behöver inte fylla i den själv —
+> Claude gör det efterhand medan ni jobbar. **Du behöver inte läsa den** — den är skriven
+> till Claude, inte till dig. Vill du ändå titta: säg till om något står fel. Tomma
+> `<!-- fyll i: … -->` är normala, de fylls när svaret finns.
 
 > **Roll:** *var vi är.* Kall-start för varje ny session (läs ihop med `App_vision.md`).
 > Kort nuläge + orienteringskarta. **Läses varje session → håll filen kort och billig.**

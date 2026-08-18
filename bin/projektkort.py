@@ -16,7 +16,7 @@ Krav som styrt utformningen:
     Commits, aktiva dagar och spann är mätbara; timmar är det inte.
 
 Konfiguras valfritt med .claude/projektkort.json i projektet:
-    {"namn": "App-projektet", "undertitel": "kort beskrivning av appen",
+    {"namn": "Min app", "undertitel": "kort beskrivning av appen",
      "kod": ["lib","components","app"], "krav": "docs/kravspec.md"}
 """
 import json
@@ -191,9 +191,9 @@ def main():
         v3.append(f"{tal(kravrader)} rader kravspec")
     v4 = []
     if commits:
-        v4.append(f"{commits} commits")
+        v4.append(f"{commits} commit" + ("" if commits == 1 else "s"))
     if dagar:
-        v4.append(f"{dagar} aktiva dagar")
+        v4.append(f"{dagar} aktiv dag" if dagar == 1 else f"{dagar} aktiva dagar")
     if första:
         v4.append(f"startad {första}")
 

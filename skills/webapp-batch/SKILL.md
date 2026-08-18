@@ -12,6 +12,17 @@ Standard-arbetssättet för större jobb (flera backlog-poster på en gång, ell
 > Tumregel: rör ändringen **vad användaren ser eller bestämmer** hör den hit; rör den **hur agenterna arbetar** hör den i `long-run`.
 > ⚠️ **Ändringar som spänner över båda måste landa på båda ställena.** Det har redan gått fel en gång: reservlistans *regel* skrevs i `long-run` medan widgetens *kontroll* för den glömdes här, så specen sa "kryssruta" medan widgeten hade tre lägen. Skriv aldrig bara halva mekanismen.
 
+## Förutsättningar (30 sekunder innan steg 0)
+- **Posterna behöver ingen backlog-fil.** Normalt kommer de ur `Backlog.md`, men widgeten bryr
+  sig inte om källan: en lista användaren räknar upp i chatten, öppna issues eller ett inklistrat
+  mejl fungerar lika bra. Kräv aldrig att en fil ska finnas innan batchen kan börja.
+- **Git:** batchen vill ha en gren att committa på. Är projektet inte ett git-repo — säg det i
+  klartext och föreslå antingen `git init` eller en körning utan grenar/commits per post. Gissa inte.
+- **Uppsättningen sköter sig själv:** `reports/` och `docs/batch-historik.json` skapas av
+  preflight-skriptet. De behöver inte finnas i förväg.
+- **Doc-hygien-grinden i slutet** förutsätter doc-roll-filerna. Saknas de: hoppa grinden och
+  **skriv i slutrapporten att den hoppades och varför** — skapa dem inte mitt i en batch.
+
 ## Steg 0 — Hämta öppen feedback först
 Om projektet har ett ställe där feedback/designnotiser samlas (t.ex. ett admin-verktyg, en inkorg, öppna GitHub-issues): hämta de **ohanterade** posterna först och väv in dem som backlog-kandidater i widgeten, så feedback som lämnats någon annanstans aldrig missas. Saknas ett sådant ställe: hoppa steget.
 
@@ -63,6 +74,10 @@ kvar som facit om mallen måste byggas om.
   - 🟡 **Autonomt efter frågor** — behöver några inledande beslut, kör sedan själv.
   - 🔴 **Kräver din närvaro** — aktiv medverkan behövs (prod/live-verifiering, creds, hårdvara, subjektiva designval som kräver iteration).
 - **Insats** — Låg / Medel / Stor (eller "Klar — verifiera").
+  ⚠️ **Översätt till datafilens ord när du skriver kortet:** `size` heter `"liten"|"medel"|"stor"`
+  — aldrig `"låg"`. Widgeten talar om *insats*, dashboarden om *kortstorlek*; samma skala, olika
+  ord, och `"låg"` ger fel kortstorlek utan att något klagar. Hela schemat står överst i den
+  `-data.js` som preflight skapar.
 - **Kommentarsfält** — fri text: prioriteringar, förtydliganden eller **utmaningar** ("varför kräver X min närvaro?").
 - **Knapp — "Föreslå körordning"**, inte "Starta batch". Knappen startar **ingenting**; den skickar valda poster med sin prioritet + kommentaren tillbaka via `sendPrompt` och ber om ett förslag. Namnge den så att det syns — en knapp som heter "starta" och inte startar är ett löftesbrott.
 
@@ -79,7 +94,19 @@ Widgetens svar är **indata, inte ett startkommando.** Innan en enda post påbö
    användarens.** `long-run`s verifierar-steg låter en andra subagent dubbelkolla varje
    Tier A-kodpost före commit. Det kostar uppskattningsvis **30–50 % fler tokens** över ett
    pass. Ställ frågan här, medan användaren är vaken och kan väga den mot sin veckoförbrukning
-   — inte kl. 02 när orkestratorn tar den i tysthet. **Skriv svaret i `reports/<bas>-state.md`**,
+   — inte kl. 02 när orkestratorn tar den i tysthet.
+   ⚠️ **Ställ den i klartext, aldrig i tokens.** "Tokens" och "veckoförbrukning" är
+   *Claude Codes* måttenheter, inte användarens — en granskning 2026-08-18 fastnade här:
+   *"Jag vet inte vad en token är, vad min veckoförbrukning är, eller var jag ser den. Jag
+   skulle svara slumpmässigt."* Ett slumpsvar på den här frågan är sämre än inget svar, för
+   det avgör om nattens arbete blir granskat. Formulera i stället konsekvensen, och ta med
+   den siffra du faktiskt har: `[arbetsbudget]`-raden (`bin/runtime-status.py`) står i din
+   context vid varje prompt. Ungefär:
+   > *"Ska jag dubbelkolla mitt eget arbete under natten? Det ger färre fel men gör passet
+   > ungefär en tredjedel dyrare — och du har X % av veckans utrymme kvar. Tar utrymmet slut
+   > mitt i natten stannar passet där det står."*
+   Kan du inte läsa av siffran: säg det, och beskriv valet ändå. Fråga aldrig i enheter du
+   själv skulle behöva förklara. **Skriv svaret i `reports/<bas>-state.md`**,
    eftersom den filen läses om vid varje återupptagning medan den här skillen inte gör det.
    Säg vad det köper: i passet 2026-08-01→02 kördes granskningen noll gånger, och morgonens
    oberoende granskning hittade tio felaktiga utfallspåståenden — två av dem tal som ärvts i
@@ -113,7 +140,8 @@ klocka och "sett"-set — det är därför preflight vägrar i stället för att
 Skriptet fanns inte förrän riggningen visat sig vara det som faller: sex steg i prosa, lästa en gång
 vid passets start, hoppades över **allihop** i ett verkligt pass. En hook (`bin/batch-guard.mjs`)
 påminner numera när en `batch-worker` startas utan att någon dashboard är `running` — den blockerar
-inget, men tystnar bara när riggningen faktiskt är gjord.
+inget; varje påminnelse tystnar när dess EGET villkor är uppfyllt (riggningen gjord,
+granskningen gjord, budgeten god, filleveransen utpekad) — inte när riggningen är gjord.
 
 **Ingen strängpatchning inuti HTML:en behövs** (och ska inte göras): mallen läser `<bas>-data.js` och `<bas>-img/bg.jpg` ur sitt eget filnamn. Öppna dashboarden själv en gång innan du ger länken och se att korten renderar — en trasig dashboard ser ut som en trasig batch.
 - **Allt personligt är per BATCH, aldrig per dygn:** nytt `name`, ny `nameWhy`, nytt `saying`, nya bakgrundsbilder och ett `bgId` som är unikt för batchen (använd basnamnet). Kör man två batchar samma dag ska de kännas som två olika jobb — samma namn eller samma foto två gånger är en bugg, inte en stilfråga.
@@ -131,6 +159,11 @@ inget, men tystnar bara när riggningen faktiskt är gjord.
 - **"Kräver din input"-läge:** en post som halvvägs visar sig inte kunna slutföras autonomt → sätt `phase:"input"` + `question`. **Halta inte hela batchen** — fortsätt med andra autonoma poster medan du väntar, väv in svaret när det kommer.
 - **Bakgrundsfoton — EN PER POST, med egen kommentar.** Antalet bilder ska matcha antalet poster i batchen (golv ~6, tak ~20 så nedladdningen inte skenar). Skälet är att en lång batch är något användaren **tittar på** i timmar, och fyra bilder som cyklar blir tapet.
   - **Sprid temat.** Femton foton på samma motiv är tråkigt. Härled **3–5 söktema** ur batchen och fördela antalet mellan dem: dess *ämne* (det appen handlar om), dess *metod* (granskning, mätning, källkritik), dess *lynne* (nattarbete, städning, optimering), plus ett **jokertema** som knyter an till användaren, orten eller årstiden. En batch som mest är städning och optimering kan alltså ha en städbild, en depåstopp-bild och en bild på ett välordnat verktygsskåp — alla relevanta, ingen likadan. Kör `batch-bg.py` en gång per tema med var sin andel av antalet.
+    ⚠️ **Sökorden måste vara på ENGELSKA**, även när allt annat i passet är svenskt: sökningen
+    går mot Wikimedia Commons, vars taggning i praktiken är engelskspråkig. Uppmätt 2026-08-18:
+    `"kokbok kök"` gav `{"ok": false, "error": "no suitable landscape photos"}`, medan
+    `"cookbook kitchen"` gav träff direkt. Översätt temat innan du söker — annars får en svensk
+    batch en dashboard helt utan bakgrunder, vilket är precis det den här punkten finns för.
   - ⚠️ **Kontrollera att fotona inte är för MÖRKA — dashboarden är mörk och lägger en scrim som
     tar upp till 78 % av ljuset.** Uppmätt 2026-08-02: av tretton foton låg fyra under
     medelluminansen **100 av 255**, och de blev platta mörka fält som läser som *ingen bakgrund
@@ -194,7 +227,12 @@ och läser som ett hängt jobb. `"paused"` stänger av pollen och säger sanning
 
 ## DoD per post (innan en post markeras klar)
 - **Logik-/analys-ändring:** kör **projektets test/verify-kommando** och se att den är grön. Rör den delad fixtur/golden data → uppdatera den.
-- **Ren GUI-/styling-ändring:** typecheck + token-lint (`${CLAUDE_PLUGIN_ROOT}/bin/check-design-tokens.mjs`), verifiera visuellt.
+- **Ren GUI-/styling-ändring:** typecheck + token-lint (`${CLAUDE_PLUGIN_ROOT}/bin/check-design-tokens.mjs [kataloger]`), verifiera visuellt.
+  ⚠️ **Linten söker Tailwind-klasser.** Ligger koden inte i `app/` + `components/` — ge katalogerna
+  som argument (`… check-design-tokens.mjs .`). Använder projektet **inte Tailwind** är grinden
+  inte tillämplig: **hoppa den och skriv att den hoppades**, i stället för att redovisa den som
+  godkänd. En lint som inte läst något är inte ett godkänt, och ett falskt godkänt på en grind
+  är värre än ingen grind.
 - Varje fixad bugg får ett regressionstest.
 
 ### Pixeldiff-grinden — gäller VARJE post, inte bara de som rör UI
@@ -223,7 +261,7 @@ Tre saker delar då samma uppräkning: granskare hänvisar till **fallnummer** i
 En stor batch ryms sällan i ett context-fönster. Tillståndet ligger **på disk**: dashboarden (`-data.js`) bär per-post-status, git-trädet bär koden, och en `reports/$BAS-state.md` bär scope-beslut/defaults/körordning + "så här återupptar du". En ny session läser dessa + nästa `waiting`-post och fortsätter utan att fråga om igen. Trigger: "fortsätt batchjobbet".
 
 ## Fånga per-post-timing + tokens (för retrospektiven)
-Genom hela körningen: **stämpla `t0` (epoch ms) på varje post när den startar** (`date +%s%3N`), och när
+Genom hela körningen: **stämpla `t0` (epoch ms) på varje post när den startar** (hämta talet med `node -e "console.log(Date.now())"` — **inte** med `date +%s%3N`: BSD-`date` på macOS kan inte `%N` och ger `17870838293N`, alltså en sträng. Dashboarden kräver `typeof === "number"` och **hoppar tyst över hela retrospektivet** när stämpeln är skräp), och när
 dess subagent är klar sätt **`t1 = t0 + subagentens duration_ms`** och **`tokens = subagentens
 subagent_tokens`** (båda finns i subagentens slutnotis) i postens item i `-data.js`. Dessa tre fält driver
 retrospektiv-sektionen "Så gick körningen" (stats + tyngsta jobbet + tidslinje) som mallen renderar vid frys.
@@ -251,9 +289,22 @@ När allt är klart fryses statusen och samma fil blir **slutrapporten**. Ge **b
 **Avsluta ALLTID batchen med en kort lista över var man tar sig in**, längst ned i slutmeddelandet:
 
 ```
-**Slutrapport:** http://localhost:8099/<bas>.html
+**Slutrapport:** http://localhost:<rapportport>/<bas>.html
 **Appen:**      http://localhost:<port>/            ← testa här
 **<vy>:**       http://localhost:<port>/<vy>        (om batchen rörde den)
+```
+
+⚠️ **Anta aldrig en fast port för rapportservern.** Fram till 0.1.21 stod `8099` inskrivet här.
+Uppmätt 2026-08-18: porten var upptagen av **ett annat projekts** rapportserver, så länken gav
+`404` — och roten av den servern visade en helt främmande batch-lista. Skyddsregeln nedan
+(*"ge aldrig en URL du inte just fått svar från"*) räckte inte, eftersom porten **svarade** —
+bara med fel innehåll. Leta upp en ledig port innan du startar servern, och kontrollera att
+svaret på just din `<bas>.html` är `200`:
+
+```bash
+PORT=$(python3 -c "import socket;s=socket.socket();s.bind(('',0));print(s.getsockname()[1]);s.close()")
+(cd reports && python3 -m http.server $PORT &) && sleep 1
+curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:$PORT/<bas>.html"   # ska vara 200
 ```
 
 - **Starta servrarna själv först, och verifiera att de svarar** — Claude gör allt server-sidigt

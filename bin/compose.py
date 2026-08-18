@@ -11,7 +11,28 @@ Usage:
   python bin/compose.py <before.png> <after.png> "<caption>" <out.png>
 """
 import sys
-from PIL import Image, ImageDraw, ImageFont
+
+# ⚠️ Samma princip som bin/krav-puppeteer.mjs: ett saknat beroende får aldrig möta
+# användaren som en rå stacktrace. Uppmätt i en granskning 2026-08-18 — det här skriptet
+# var det enda som fortfarande dog med `ImportError: No module named 'PIL'`, hos precis den
+# användare som lovats att aldrig behöva förstå en sådan.
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    sys.exit(
+        "[webapp-kit] Före/efter-bilden kunde inte byggas.\n"
+        "\n"
+        'Det som saknas: python-paketet "Pillow" finns inte på den här datorn.\n'
+        "Vad det är: biblioteket som klistrar ihop två skärmdumpar till en jämförelsebild.\n"
+        "\n"
+        "TILL CLAUDE — gör detta åt användaren, be aldrig hen köra det:\n"
+        "  1. `python3 -m pip install --user Pillow`\n"
+        "  2. Kör om kommandot.\n"
+        'Berätta i klartext vad du gjorde ("jag installerade det som bygger jämförelsebilder").\n'
+        "\n"
+        "Går det inte: fortsätt utan sammansatt före/efter-bild — de enskilda skärmdumparna\n"
+        "fungerar ändå — och skriv i rapporten VARFÖR jämförelsebilden saknas.\n"
+    )
 
 if len(sys.argv) != 5:
     sys.exit("Usage: compose.py <before.png> <after.png> <caption> <out.png>")

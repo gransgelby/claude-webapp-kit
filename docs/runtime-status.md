@@ -109,5 +109,5 @@ man är blind är bättre än att inte veta det, men det är inte det som efterf
    är en webbsida användaren kan öppna var som helst), eller ska mätaren gå att läsa av på
    begäran utan desktop-appen.
 
-**Bevis att spara:** hela förloppet 2026-08-11 ligger i App-projektet-repots
+**Bevis att spara:** hela förloppet 2026-08-11 ligger i app-repots
 `reports/batch-2026-08-10-spannbandet-state.md` och i den batchens commit-historik.

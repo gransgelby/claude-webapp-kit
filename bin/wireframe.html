@@ -30,6 +30,7 @@ body{
   color:#a9b2bd;                      /* 7,2:1 mot #1a1e23 ✓ */
   -webkit-font-smoothing:antialiased;
   overflow:hidden;
+  display:flex;flex-direction:column; /* headern får radbryta, ytan tar resten — se .top */
 }
 button,input,select,textarea{
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -86,9 +87,17 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.5}
 
 /* ── Topbar ───────────────────────────────────────────────────────────── */
 .top{
-  display:flex;align-items:center;gap:16px;height:56px;padding:0 16px;
+  display:flex;align-items:center;gap:16px;min-height:56px;padding:8px 16px;
   background:#1a1e23;border-bottom:1px solid #333a43;
+  flex-wrap:wrap;                     /* se ⚠️ nedan — får ALDRIG bli nowrap igen */
+  flex:0 0 auto;
 }
+/* ⚠️ Headern måste radbryta. Uppmätt 2026-08-18 i ett 637 px brett fönster:
+   knappraden var 1065 px, och `body{overflow:hidden}` gjorde att den inte gick att
+   scrolla fram. Följden: "Kopiera för Claude" — verktygets ENDA väg att lämna över
+   skissen — var permanent oåtkomlig under ~1065 px. Skissen gick att rita men aldrig
+   att använda. Fast `height` på .top + `calc(100% - 56px)` på .wrap var det som band
+   fast raden; därför är body numera en flex-kolumn och höjderna flexibla. */
 .logo{font-size:12.5px;font-weight:700;letter-spacing:.1em;color:#e9edf2;white-space:nowrap}
 .logo b{color:#74a69c;font-weight:700}
 .tsep{width:1px;height:26px;background:#333a43;flex:none}
@@ -97,7 +106,7 @@ textarea.field{resize:vertical;min-height:72px;line-height:1.5}
 .grow{flex:1}
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
-.wrap{display:grid;grid-template-columns:1fr 288px;height:calc(100% - 56px)}
+.wrap{display:grid;grid-template-columns:1fr 288px;flex:1;min-height:0}
 .stage{                       /* MÖRKGRÅ – verktygets yta, inte sidan */
   background:#24282e;overflow:auto;padding:16px 22px 40px;
 }
@@ -260,6 +269,7 @@ kbd{background:#101317;border:1px solid #4d555f;border-bottom-width:2px;border-r
   </div>
 
   <span class="grow"></span>
+  <span id="krockvarning" style="display:none;color:#e8b04b;font-size:12px;max-width:38ch;line-height:1.35"></span>
   <button class="btn" type="button" id="open">Öppna…</button>
   <button class="btn" type="button" id="save">Spara JSON</button>
   <button class="btn btn--danger" type="button" id="clear">Rensa</button>
@@ -293,9 +303,9 @@ kbd{background:#101317;border:1px solid #4d555f;border-bottom-width:2px;border-r
         <label class="fieldlbl" for="pKind">Typ</label>
         <select class="field" id="pKind">
           <option value="innehåll">Innehåll</option>
-          <option value="resultat">Resultat / primärt</option>
-          <option value="media">Ritning / karta</option>
-          <option value="panel">Panel (fast bredd)</option>
+          <option value="resultat">Det viktigaste</option>
+          <option value="media">Bild eller media</option>
+          <option value="panel">Sidospalt</option>
         </select>
         <label class="fieldlbl" for="pNote">Kommentar</label>
         <textarea class="field" id="pNote" placeholder="Vad ska ligga här? Beteende, prioritet, vad som är viktigast…"></textarea>
@@ -315,9 +325,9 @@ kbd{background:#101317;border:1px solid #4d555f;border-bottom-width:2px;border-r
       <h3>Typer</h3>
       <div class="legend">
         <div><i></i>Innehåll</div>
-        <div><i class="k-resultat"></i>Resultat / primärt</div>
-        <div><i class="k-media"></i>Ritning / karta</div>
-        <div><i class="k-panel"></i>Panel (fast bredd)</div>
+        <div><i class="k-resultat"></i>Det viktigaste</div>
+        <div><i class="k-media"></i>Bild eller media</div>
+        <div><i class="k-panel"></i>Sidospalt</div>
       </div>
     </section>
 
@@ -421,7 +431,7 @@ function render(){
     board.appendChild(el);
   });
   $('#emptyStage').style.display = state.boxes.length ? 'none' : 'grid';
-  renderSide(); save();
+  renderSide(); visaKrockar(); save();
 }
 
 function renderSide(){
@@ -586,11 +596,23 @@ document.addEventListener('keydown', ev=>{
 });
 
 /* ── Export ───────────────────────────────────────────────────────────── */
+/** Par av rutor som täcker samma cell. En sådan layout går inte att översätta till grid. */
+function överlapp(bs){
+  const par = [];
+  for (let i=0;i<bs.length;i++) for (let j=i+1;j<bs.length;j++){
+    const a=bs[i], b=bs[j];
+    const krockX = a.c < b.c+b.w && b.c < a.c+a.w;
+    const krockY = a.r < b.r+b.h && b.r < a.r+a.h;
+    if (krockX && krockY) par.push([a,b]);
+  }
+  return par;
+}
 function toMarkdown(){
   const bs = [...state.boxes].sort((a,b)=> a.r-b.r || a.c-b.c);
   let s = '# Wireframe: ' + state.screen + '\n\n';
   s += 'Rutnät: **' + state.cols + ' kolumner × ' + state.rows + ' rader**. ';
   s += 'Rad ' + FOLD_ROWS + ' motsvarar vikningen på en MacBook Pro 14″ — allt därunder kräver scroll. ';
+  s += '(Raden nedan är en teknisk instruktion till Claude, inte något du behöver förstå.)\n';
   s += 'Positioner är kolumn-/radspann; översätt till `col-span-*` och gap ur spacing-token.\n\n';
   s += '| Ruta | Typ | Kolumner | Rader | Kommentar |\n|---|---|---|---|---|\n';
   bs.forEach(b=>{
@@ -599,8 +621,25 @@ function toMarkdown(){
        + (b.r+1) + '–' + (b.r+b.h) + ' (spann ' + b.h + ') | '
        + (b.note||'').replace(/\n/g,' ') + ' |\n';
   });
+  const krockar = överlapp(bs);
+  if (krockar.length){
+    s += '\n⚠️ **Rutorna nedan ligger ovanpå varandra och kan inte byggas som de står.** '
+       + 'Fråga användaren vilken som ska ge vika innan du översätter layouten — gissa inte:\n';
+    krockar.forEach(([a,b])=>{
+      s += '- **' + (a.name||'Namnlös') + '** (kol ' + (a.c+1) + '–' + (a.c+a.w) + ') och **'
+         + (b.name||'Namnlös') + '** (kol ' + (b.c+1) + '–' + (b.c+b.w) + ') delar samma yta.\n';
+    });
+    s += '\n';
+  }
   s += '\n<details><summary>JSON</summary>\n\n```json\n' + JSON.stringify(state,null,2) + '\n```\n</details>\n';
   return s;
+}
+/** Visar en varning i verktyget när skissen har överlappande rutor. */
+function visaKrockar(){
+  const el = $('#krockvarning'); if(!el) return;
+  const n = överlapp(state.boxes).length;
+  el.textContent = n ? ('⚠️ ' + n + (n===1?' ruta ligger':' rutor ligger') + ' ovanpå varandra – flytta isär dem, annars går layouten inte att bygga.') : '';
+  el.style.display = n ? '' : 'none';
 }
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),1900); }
 

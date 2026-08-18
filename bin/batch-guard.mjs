@@ -11,7 +11,7 @@
  * STDIN (JSON): { session_id, cwd, hook_event_name, tool_name,
  *                 tool_input: { prompt, description, subagent_type, model }, tool_use_id }
  *
- * Hooken bär TVÅ påminnelser, och de har olika villkor med flit:
+ * Hooken bär FYRA påminnelser, och de har olika villkor med flit:
  *
  *   A. RIGGNINGEN (dashboard, ett kort per post) — bara när ingen dashboard drivs.
  *   B. ARBETSBUDGETEN (5h-fönster, orkestratorns context) — ALLTID när läget kräver det,
@@ -21,9 +21,18 @@
  *      varje verktygsanrop. Verdikten (kör/ryms/avsluta) räknas DÄR, inte här — tröskeln
  *      ska ha en hemvist.
  *
+ *   C. VERIFIERAREN (adversariell dubbelkoll) — inuti en levande batch med committad post.
+ *   D. FILLEVERANSEN — för VARJE subagenttyp, inte bara batch-worker. Det är skillnaden
+ *      mot A–C, och den är avsiktlig: regeln "returtexten är ett smalt rör" bodde i
+ *      long-run + batch-worker.md, alltså på två ställen som båda förutsätter att ett
+ *      BATCH-pass körs. En granskningsagent startad utanför en batch träffade därför
+ *      ingen av dem, och 2026-08-18 returnerade en sådan agent "Klart." respektive
+ *      "Slutförd." efter tjugo minuters arbete — hela rapporten borta, två gånger i rad.
+ *      Samma sorts fel som 0.1.20 gällde, ett lager längre ut.
+ *
  * BESLUT:
- *   subagent_type saknar "batch-worker"          → tyst, exit 0 (inget på stdout)
- *   varken A eller B har något att säga          → tyst, exit 0
+ *   subagent_type saknar "batch-worker"          → bara D prövas (A–C är batch-begrepp)
+ *   ingen påminnelse har något att säga          → tyst, exit 0 (inget på stdout)
  *   annars                                       → allow + additionalContext på stdout
  *
  * TRE KRAV, ALLA UR FALLGROPAR:
@@ -185,14 +194,54 @@ function budgetPåminnelse() {
   ].join("\n");
 }
 
+//: D — FILLEVERANSEN. Två frågor, båda avsiktligt trubbiga: ska agenten leverera TEXT,
+//: och har prompten redan pekat ut en fil att lägga den i? Hellre tyst en gång för
+//: mycket än en påminnelse vid varje litet sök-uppdrag (krav 1: vakten ska inte bli brus).
+const LEVERANSORD = /(rapport|redovisa|granska|granskning|analys(era)?|utred|utvärder|sammanfatta|sammanställ|review|audit|undersök|kartlägg|inventera|bedöm)/i;
+//: en SKRIVNING till en fil — inte bara att ett filnamn nämns. Prompten kan mycket väl be
+//: agenten LÄSA tio .md-filer utan att peka ut var svaret ska hamna; det var precis fallet
+//: när regeln bröts 2026-08-18.
+const SKRIVER_TILL_FIL = /(skriv|spara|write|dumpa|lägg)[^\n]{0,120}\.(md|json|html|txt|csv)\b/i;
+//: korta prompter är små uppdrag vars svar ryms i returtexten ändå.
+const MINSTA_PROMPT = 400;
+
+function saknarFilleverans(prompt) {
+  if (typeof prompt !== "string" || prompt.length < MINSTA_PROMPT) return false;
+  if (!LEVERANSORD.test(prompt)) return false;
+  return !SKRIVER_TILL_FIL.test(prompt);
+}
+
+const FILLEVERANS = [
+  "[webapp-kit] ⚠️ Den här subagenten ser ut att leverera TEXT, men prompten pekar inte ut " +
+  "någon fil att skriva den till.",
+  "· **Returtexten är ett smalt rör.** En agent som arbetat i tjugo minuter och gjort hundra " +
+  'verktygsanrop returnerar regelbundet ett enda ord — "Klart.", "Slutförd.", "Väntar." — och ' +
+  "då är hela redovisningen borta, inte bara förkortad. Uppmätt 2026-08-01→02 (tre agenter i " +
+  "rad) och igen 2026-08-18 (två gånger med SAMMA agent).",
+  "· **Åtgärd:** ge agenten en explicit sökväg i prompten — \"skriv hela rapporten till " +
+  "<sökväg>.md och svara sedan med enbart KLART\" — och läs filen efteråt. Be den skriva " +
+  "LÖPANDE, inte som sista handling: en agent som får slut på utrymme hinner annars aldrig dit.",
+  "· Regeln i sin helhet: `long-run`-skillen, *Returtexten är ett smalt rör*.",
+  "· Är leveransen kod, en fil på disk eller ett kort svar — strunta i detta. Hooken blockerar aldrig.",
+].join("\n");
+
 function main() {
   const rå = läsStdin();
   if (!rå.trim()) return;
   const inn = JSON.parse(rå);
   const typ = inn?.tool_input?.subagent_type;
-  if (typeof typ !== "string" || !typ.includes("batch-worker")) return;
 
   const delar = [];
+
+  // D först, och UTANFÖR batch-grinden: den gäller varje subagent som ska leverera text.
+  // Att den låg innanför är hela skälet till att regeln kunde brytas — se filhuvudet.
+  if (saknarFilleverans(inn?.tool_input?.prompt)) delar.push(FILLEVERANS);
+
+  // A–C är batch-begrepp och säger ingenting vettigt om en fristående agent.
+  if (typeof typ !== "string" || !typ.includes("batch-worker")) {
+    if (delar.length) skriv(delar);
+    return;
+  }
 
   // Budgeten först: den gäller även mitt i en levande batch, och är det allvarligaste
   // av de två. Riggningspåminnelsen är en skönhetsfläck i jämförelse.
@@ -215,7 +264,11 @@ function main() {
   if (levandeRot && harCommittadPost(levandeRot)) delar.push(VERIFIERARE);
 
   if (delar.length === 0) return;
+  skriv(delar);
+}
 
+/** Enda stället som skriver till stdout — se anmärkningen om process.exit() i filhuvudet. */
+function skriv(delar) {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: "PreToolUse",

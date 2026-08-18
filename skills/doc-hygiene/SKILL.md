@@ -9,6 +9,16 @@ kunskap färsk och billig att läsa. Grundregeln: **ingen dubbel bokföring** �
 faktum har *en* hemvist, korslänka i stället för att kopiera. Dubblering är
 rotorsaken till att dokumentation blir gammal.
 
+## Förutsättning: filerna finns (kolla först)
+
+Skillen förutsätter att projektet har `App_vision.md`, `Project_state.md`, `Reference.md`,
+`Backlog.md` och `Project_history.md` i roten. **Saknas de är projektet inte uppsatt för
+pluginet.** Erbjud då uppsättningen — `node "${CLAUDE_PLUGIN_ROOT}/bin/kit-init.mjs" --namn
+"<projektnamn>"` skapar dem ur mallar och skriver aldrig över något befintligt — och **vänta
+på ja innan du kör den**. Införs rollsystemet oombett blir svaret på "granska dokumentationen"
+sex nya filer användaren inte bett om. Finns bara *några* av rollerna: arbeta med dem som finns
+och föreslå resten; låtsas aldrig att en saknad fil finns.
+
 ## De fem rollerna
 
 - **App_vision.md** – *vart vi ska*: produktvision, syfte, primär användare,

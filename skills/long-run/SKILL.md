@@ -18,6 +18,7 @@ För en **stor eller obevakad** körning: en lång autonom session som lutar sig
 2. **Servrar uppe:** projektets dev-/backend-server svarar (starta om vid behov). Annars stallar poster.
 3. **Worklist:** läs batchen ur `docs/batch-queue.md` (Tier A + Tier B). Grundprocess: batch-skillen.
 4. **Dashboard:** skapa/öppna live-dashboarden (batch-skillens mall), `status:"running"`, auto-döp "Operation …".
+5. **Saknas något av 1–4?** Säg det innan du startar, inte efteråt. Inget git-repo → kör utan grenar/commits och skriv det i rapporten. Ingen `docs/batch-queue.md` → bygg kön ur det användaren räknat upp. Inga doc-roll-filer → hoppa doc-hygien-svepet och **redovisa att det hoppades**; ett obevakat pass är fel tillfälle att införa ett dokumentsystem användaren inte bett om.
 
 ## Harness — subagent per post (bevara huvud-context)
 För **varje** post: spawna en **`batch-worker`-subagent** (`Agent`-verktyget) i eget context-fönster som gör hela posten och returnerar en **kort sammanfattning** (+ filer + verify-resultat). Huvudloopen håller bara sammanfattningarna → context växer långsamt.
@@ -45,11 +46,26 @@ ingenting annat. Utfallet:
   efter en uttrycklig uppmaning att redovisa; först när uppdraget bytte till *"skriv rapporten
   till `reports/doc-svep-B.md`"* kom resultatet fram.
 
+- **2026-08-18:** en `general-purpose`-granskare returnerade *"Klart."* och — efter en uttrycklig
+  begäran om hela rapporten — *"Slutförd."*. Två gånger, samma agent, 160 k tokens och 64
+  verktygsanrop bakom sig. Först när uppdraget löd *"skriv rapporten till `<sökväg>.md`, svara
+  sedan med enbart KLART"* kom innehållet fram. Den var startad **utanför** ett batch-pass, så
+  varken den här filen eller `batch-worker.md` lästes av någon.
+
 **Det är samma klass av fel som 0.1.16** (*"verifierar-steget kördes noll gånger av tolv, för att
-regeln bodde i en fil ingen läste"*): rätt regel, fel hemvist. **Skriv regeln i uppdraget varje
-gång du delegerar till något annat än `batch-worker`** — `Explore` och `general-purpose` kan inte
-läsa den härifrån. Och observera att `Explore` **inte kan skriva filer** (ingen `Write`/`Edit`);
-ska en granskare leverera en rapport till disk måste den vara `general-purpose`.
+regeln bodde i en fil ingen läste"*): rätt regel, fel hemvist. Tre gånger i rad har lösningen varit
+att flytta regeln ett steg utåt — och den fjärde hemvisten är den enda som fyrar oavsett vem som
+delegerar och varför:
+
+> **`bin/batch-guard.mjs` (PreToolUse på `Agent`) prövar numera VARJE subagenttyp**, inte bara
+> `batch-worker`: ser prompten ut att beställa en text-leverans utan att peka ut en fil, påminner
+> hooken i samma ögonblick som agenten startas. Den blockerar aldrig. Det är först här regeln
+> ligger framför den som faktiskt kan följa den, vid det enda tillfälle då det är gratis att göra rätt.
+
+**Skriv ändå regeln i uppdraget varje gång du delegerar till något annat än `batch-worker`** —
+hooken är ett skyddsnät, inte en ersättning, och `Explore`/`general-purpose` kan inte läsa den
+härifrån. Observera också att `Explore` **inte kan skriva filer** (ingen `Write`/`Edit`); ska en
+granskare leverera en rapport till disk måste den vara `general-purpose`.
 
 - **Sekventiellt för fil-rörande poster** — undvik att två subagenter skriver samma fil samtidigt.
 - **Parallellt för read-only-poster** (research, audit, deep-research) — inga fil-krockar → kör flera på en gång.

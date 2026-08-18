@@ -97,7 +97,15 @@ function riggaGren(gren, cwd) {
   try {
     git(["rev-parse", "--git-dir"], cwd);
   } catch {
-    throw new Vägran(`${cwd} är inget git-arbetsträd — kan inte skapa grenen "${gren}".`);
+    throw new Vägran(
+      `${cwd} är inte versionshanterat med git — kan därför inte skapa grenen "${gren}".\n` +
+      "\nTILL CLAUDE: förklara valet för användaren i klartext innan du gör något, ungefär:\n" +
+      '  "Jag kan spara en säkerhetskopia av varje klart steg, så att vi kan ångra oss senare.\n' +
+      '   Det kräver att jag sätter upp versionshantering i mappen (engångsgrej, tar en sekund).\n' +
+      '   Vill du det, eller kör vi utan — då blir ändringarna kvar men utan ångra-punkter?"\n' +
+      "Vid ja: kör `git init` och riggningen igen. Vid nej: kör om utan --gren; batchen\n" +
+      "fungerar, men committa-stegen hoppas och det ska stå i slutrapporten."
+    );
   }
   let nuvarande = "";
   try { nuvarande = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd); } catch { /* tomt repo */ }
@@ -125,7 +133,24 @@ function datafil(bas, namn) {
   return `// ${bas} — skapad av batch-preflight.mjs. Skriv om DENNA fil vid varje statusändring
 // (aldrig HTML-skalet); skalet re-injicerar den var ~6:e s medan status === "running".
 // TODO innan batchen startar: nameWhy, saying, bgImages (batch-bg.py) och items — en post
-// per punkt användaren valde, ALDRIG gruppkort.
+// per punkt användaren valde, ALDRIG gruppkort. Även bgCaption: den RENDERAS på
+// välkomstskärmen och i sidfoten, så den får aldrig bära ordet TODO eller ett filnamn —
+// uppmätt 2026-08-18, då en användare läste utvecklarens lapp mitt på sin resultatsida
+// och trodde att något var trasigt.
+//
+// ── SCHEMA (de fält som faktiskt går fel om man gissar) ──────────────────────────
+//   status   (toppnivå): "running" | "paused" | "aborted" | "done"
+//   items[]  per post:
+//     id       kort id, t.ex. "R1"
+//     t        TITELN — fältet heter \`t\`, INTE \`title\`. Fel namn ⇒ kortet renderas titellöst.
+//     size     "liten" | "medel" | "stor"  (ALDRIG "låg" — urvalswidgeten säger Låg/Medel/Stor
+//              om INSATS, datafilen vill ha kortstorlek. Samma skala, andra ord.)
+//     phase    "waiting" | "starting" | "active" | "testing" | "done" | "blocked" | "input"
+//              ⚠️ "running" är en giltig TOPPNIVÅ-status men INGEN fas ⇒ kortet visar "⚠ OKÄND FAS".
+//     activity pågår-rad · note klar-text · shots [{src,label,caption}]
+//     t0,t1    epoch-ms start/slut · tokens  subagentens subagent_tokens
+//              (driver retrospektivet "Så gick körningen"; utelämnas de hoppas sektionen)
+//   Fullständig referens med alla fält: templates/batch-dashboard-data.js
 window.__applyBatch({
   "status": "running",
   "name": ${JSON.stringify(namn)},
@@ -136,7 +161,7 @@ window.__applyBatch({
   "updated": "Riggad av batch-preflight — poster läggs in när ordningsförslaget är godkänt.",
   "status_note": "Live-vy. Korten uppdateras in-place medan jobbet körs.",
   "bgCredit": "",
-  "bgCaption": "TODO: hämta bakgrunder med bin/batch-bg.py och lägg dem som bgImages.",
+  "bgCaption": "(inga bakgrundsbilder den här gången)",
   "tests": null,
   "items": []
 });
@@ -207,9 +232,16 @@ function main() {
   }
   const hist = läsHistorik(historikFil);
   if (hist.trasig) fel(`${path.relative(PROJEKT, historikFil)} går inte att tolka som JSON — laga den först (namnkollen kan annars inte göras).`);
-  if (hist.data.namn.includes(opt.namn)) {
-    fel(`namnet "${opt.namn}" är redan använt (står i ${path.relative(PROJEKT, historikFil)}).\n` +
-        "  Namn får aldrig gå igen — välj ett nytt.");
+  //: jämförs normaliserat. VARFÖR: kontrollen var skiftlägeskänslig och räknade dubbla
+  //: mellanslag som skillnad, så "operation  kokbok" gick igenom trots att "Operation Kokbok"
+  //: redan stod i historiken (uppmätt 2026-08-18). Poängen med kontrollen är att passen ska
+  //: gå att SKILJA ÅT i efterhand — två namn som bara skiljer sig på versaler gör inte det.
+  const nyckel = (n) => n.toLowerCase().normalize("NFC").replace(/\s+/g, " ").trim();
+  const krock = hist.data.namn.find((n) => nyckel(n) === nyckel(opt.namn));
+  if (krock) {
+    fel(`namnet "${opt.namn}" är redan använt (står som "${krock}" i ${path.relative(PROJEKT, historikFil)}).\n` +
+        "  Namn får aldrig gå igen — och versaler eller extra mellanslag räknas inte som skillnad.\n" +
+        "  Välj ett nytt.");
   }
 
   // ---- Sidoeffekter. Grenen först: filerna ska landa på rätt gren. ----
@@ -233,9 +265,25 @@ function main() {
   rader.push(`${hist.fanns ? "uppdaterade" : "skapade "} docs/batch-historik.json  (namn: "${opt.namn}")`);
 
   const bilder = Math.min(BILD_MAX, Math.max(BILD_MIN, opt.poster || BILD_MIN));
+  //: ⚠️ Utan gren finns inga ångra-punkter, och det är ett beslut användaren aldrig fått
+  //: ta. Uppmätt 2026-08-18: körs preflight UTAN --gren blir riggningen komplett och tyst,
+  //: medan samma skript MED --gren i en git-lös mapp ställer frågan perfekt. Skyddet hängde
+  //: alltså på om Claude råkade skicka en flagga märkt "valfri". Nu sägs det alltid.
+  const grenVarning = opt.gren
+    ? []
+    : [
+        "",
+        "⚠️  INGEN GREN SKAPADES (--gren utelämnades) — det finns alltså inga ångra-punkter.",
+        "    Varje ändring skrivs rakt in i projektet och går inte att rulla tillbaka steg för steg.",
+        "    TILL CLAUDE: säg det till användaren INNAN första posten startar, i klartext, t.ex.",
+        '    "Jag sparar inga säkerhetskopior under det här passet — är det okej, eller vill du',
+        '     att jag sätter upp det först?" Är projektet inte versionshanterat: erbjud `git init`.',
+        "    Är det ett medvetet val (litet pass, användaren har sagt nej) — kör vidare.",
+      ];
   const ut = [
     `batch-preflight: "${opt.namn}" riggad.`,
     ...rader.map((r) => `  ${r}`),
+    ...grenVarning,
     "",
     "ÅTERSTÅR — det här kan skriptet inte göra åt dig:",
     `  1. Visa urvalswidgeten (templates/batch-urvalswidget.html) och låt användaren välja`,
