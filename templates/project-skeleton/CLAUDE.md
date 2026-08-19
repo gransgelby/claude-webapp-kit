@@ -14,9 +14,9 @@ Läs alltid följande filer **innan** du påbörjar något arbete i detta projek
 session. De hålls separat just för att `Project_state.md` ska förbli kort: den läses varje
 gång, och en lång fil äter av det utrymme som annars går till arbetet.
 
-## Arbetssätt – webapp-kit-pluginet
+## Arbetssätt – webapp-kit-pluginen
 
-Processerna för det här projektet bor i **webapp-kit**-pluginets skills (kör dem med
+Processerna för det här projektet bor i **webapp-kit**-pluginens skills (kör dem med
 `/webapp-kit:<namn>` eller låt dem auto-trigga på beskrivning):
 
 - **webapp-batch** – "starta batchjobb" / större jobb över flera backlog-poster:

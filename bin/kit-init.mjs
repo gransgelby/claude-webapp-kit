@@ -2,7 +2,7 @@
 /**
  * kit-init: sätter upp ett projekt för webapp-kit — kopierar in doc-roll-filerna.
  *
- * Varför det finns som ett skript: pluginets skills förutsätter att projektet har
+ * Varför det finns som ett skript: pluginens skills förutsätter att projektet har
  * App_vision.md / Project_state.md / Reference.md / Backlog.md / Project_history.md.
  * Fram till nu stod det bara i README att man skulle `cp -R` in dem själv, vilket
  * betyder att den som inte kör kommandon i terminalen aldrig kom förbi steg noll.
@@ -155,7 +155,7 @@ async function kolla(mål) {
 if (args.kolla) await kolla(MÅL);
 const NAMN = typeof args.namn === 'string' ? args.namn : null;
 
-if (!existsSync(SKELETT)) dö(`hittar inte mallarna (${SKELETT}). Är pluginet komplett installerat?`);
+if (!existsSync(SKELETT)) dö(`hittar inte mallarna (${SKELETT}). Är pluginen komplett installerat?`);
 if (!existsSync(MÅL)) dö(`målmappen finns inte: ${MÅL}`);
 
 const filer = skelettfiler(SKELETT);

@@ -1,17 +1,17 @@
 ---
-description: Introducera webapp-kit för någon som använder det för första gången, sätt upp projektet och kontrollera förutsättningarna ("kolla att webapp-kit har allt det behöver"). Trigga på "kom igång med webapp-kit", "vad är webapp-kit", "hur funkar pluginet", "vad kan du hjälpa mig med här", när användaren verkar leta efter var man börjar, eller när ett projekt saknar doc-roll-filerna och arbete ändå ska påbörjas.
+description: Introducera webapp-kit för någon som använder det för första gången, sätt upp projektet och kontrollera förutsättningarna ("kolla att webapp-kit har allt det behöver"). Trigga på "kom igång med webapp-kit", "vad är webapp-kit", "hur funkar pluginen", "vad kan du hjälpa mig med här", när användaren verkar leta efter var man börjar, eller när ett projekt saknar doc-roll-filerna och arbete ändå ska påbörjas.
 ---
 
 # Kom igång med webapp-kit
 
-Första mötet med pluginet. Målet: användaren ska efter fem minuter veta **vad hen kan säga**
+Första mötet med pluginen. Målet: användaren ska efter fem minuter veta **vad hen kan säga**
 och ha ett projekt som är uppsatt — utan att ha läst en enda README-rad eller skrivit ett
 kommando.
 
 ## Hur du pratar här
 
 Anta **inte** att användaren läser kod eller känner till branschtermer. Orden nedan är
-pluginets interna namn och ska **översättas**, inte serveras råa:
+pluginens interna namn och ska **översättas**, inte serveras råa:
 
 | Säg inte | Säg |
 |---|---|
@@ -92,10 +92,10 @@ Nämn till sist, i en rad: *"Kör fast du någon gång — skriv `/webapp-kit:hj
 här listan igen, eller `/webapp-kit:om` om du vill veta mer om vad det här är och inte är."*
 
 Avsluta med **en** konkret fråga om vad hen vill göra först. Räkna inte upp fler alternativ än
-de fem, och visa inte pluginets mappstruktur — den behövs aldrig för att använda det.
+de fem, och visa inte pluginens mappstruktur — den behövs aldrig för att använda det.
 
 ## Vanligaste sättet det går fel
 
-Att svara på "vad kan du?" med pluginets **inre** vokabulär (skill-namn, filnamn, flaggor).
+Att svara på "vad kan du?" med pluginens **inre** vokabulär (skill-namn, filnamn, flaggor).
 Då får användaren en känsla av att hen måste lära sig ett system innan hen får börja — och
-hela poängen med pluginet är att hen inte ska behöva det.
+hela poängen med pluginen är att hen inte ska behöva det.

@@ -36,11 +36,11 @@ function saknas(rader) {
  * Slår upp puppeteer-core UTIFRÅN en given rot, inte utifrån den här filen.
  *
  * ⚠️ Det här är hela poängen med funktionen. Ett naket `import('puppeteer-core')` löser
- * paketnamnet relativt DEN IMPORTERANDE FILEN — alltså pluginets bin/-mapp, som varken
+ * paketnamnet relativt DEN IMPORTERANDE FILEN — alltså pluginens bin/-mapp, som varken
  * har package.json eller node_modules. Följden (uppmätt i en granskning 2026-08-18): en
  * användare körde `npm i -D puppeteer-core` i sitt projekt precis som felmeddelandet sa,
  * paketet installerades korrekt, och verktyget gav **exakt samma fel igen**. Rådet var
- * omöjligt att följa. Värre än så: installeras pluginet via marknadsplatsen ligger bin/
+ * omöjligt att följa. Värre än så: installeras pluginen via marknadsplatsen ligger bin/
  * i en katalog användaren varken känner till eller kan skriva i — det fanns alltså ingen
  * åtgärd alls. `NODE_PATH` hjälper inte heller; ESM ignorerar den.
  */
@@ -54,7 +54,7 @@ async function importeraFrån(rot) {
  * Returnerar modulens default-export.
  */
 export async function laddaPuppeteer({ kasta = false, rot = null } = {}) {
-  //: projektet först, pluginet sist. createRequire söker node_modules uppåt i trädet,
+  //: projektet först, pluginen sist. createRequire söker node_modules uppåt i trädet,
   //: så ett paket i en överliggande katalog hittas också.
   //: ⚠️ `rot` ERSÄTTER kedjan, den läggs inte till först. Den som frågar om ett BESTÄMT
   //: projekt (kit-init --kolla --dit) vill veta om paketet finns DÄR — ett fynd i
@@ -91,7 +91,7 @@ export async function laddaPuppeteer({ kasta = false, rot = null } = {}) {
       'kan fotograferas automatiskt. Den laddar inte ned någon egen webbläsare.',
       '',
       'TILL CLAUDE — gör detta åt användaren, be aldrig hen köra det:',
-      '  1. Ställ dig i PROJEKTETS rot (inte i pluginets mapp).',
+      '  1. Ställ dig i PROJEKTETS rot (inte i pluginens mapp).',
       '  2. Finns ingen package.json där: `npm init -y`',
       '  3. `npm i -D puppeteer-core`',
       '  4. Kör om kommandot — verktyget letar i projektet, så nu hittas det.',

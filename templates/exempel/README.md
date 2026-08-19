@@ -4,7 +4,7 @@ Den här mappen är ett **exempel att titta på**, inte en mall att kopiera. Den
 tomma mallar är svåra att förstå: det är först när man ser en ifylld version som man begriper
 vad som förväntas.
 
-Ingenting här används av pluginet. Ta bort mappen om du vill — inget slutar fungera.
+Ingenting här används av pluginen. Ta bort mappen om du vill — inget slutar fungera.
 
 ## Vad du kan öppna
 

@@ -1,6 +1,6 @@
 # webapp-kit
 
-Ett **Claude Code-plugin** som paketerar ett helt arbetssätt för att bygga webbappar med Claude Code —
+En **Claude Code-plugin** som paketerar ett helt arbetssätt för att bygga webbappar med Claude Code —
 så att det finns på plats i *alla* dina projekt, inte bara i det där det råkade uppstå.
 
 ## Vad det är, i klartext
@@ -9,7 +9,7 @@ Claude Code kan bygga webbappar åt dig. Problemet är sällan att den inte *kan
 längre jobb spårar ur: du tappar överblicken över vad som är gjort, nästa session har glömt
 allt ni kom fram till, och "gör det snyggt" ger något annat än du tänkte dig.
 
-Pluginet lägger ett arbetssätt ovanpå:
+Pluginen lägger ett arbetssätt ovanpå:
 
 - **Du väljer och prioriterar visuellt.** Räknar du upp tolv saker du vill ha fixade får du en
   klickbar ruta där du för varje punkt väljer *med*, *bara om det finns tid över* eller *hoppa*,
@@ -26,7 +26,7 @@ Pluginet lägger ett arbetssätt ovanpå:
   förutsätter att appen byggs med React/Next.js + Tailwind. Gör den inte det säger Claude det
   rakt ut och kör den enklare vägen i stället.
 
-**Du behöver inte kunna köra kommandon i en terminal.** Verktygen i pluginet är till för att
+**Du behöver inte kunna köra kommandon i en terminal.** Verktygen i pluginen är till för att
 *Claude* ska köra dem åt dig.
 
 ## Så här ser det ut
@@ -47,11 +47,11 @@ testfall och en sammanfattning av hur körningen gick.
 
 ## Kom igång
 
-1. **Installera pluginet** (se [Installera](#installera) nedan).
+1. **Installera pluginen** (se [Installera](#installera) nedan).
 2. **Öppna ditt projekt i Claude Code** — eller en tom mapp, om appen inte finns än.
 3. **Skriv i chatten:** `kom igång med webapp-kit`
 
-Claude introducerar då pluginet, sätter upp projektets anteckningsfiler åt dig och frågar vad
+Claude introducerar då pluginen, sätter upp projektets anteckningsfiler åt dig och frågar vad
 du vill göra först. Det är hela uppsättningen — inga kommandon, inga filer att kopiera.
 
 ## Vad du kan säga sedan
@@ -72,7 +72,7 @@ skriva — de triggar på beskrivningen.
 | Skriv | Vad du får |
 |---|---|
 | `/webapp-kit:hjalp` | Kort lista över vad du kan göra just nu, och hur du tar dig ur de vanligaste kniporna |
-| `/webapp-kit:om` | Det längre svaret på vad pluginet är — **och vad det inte är och inte kan** |
+| `/webapp-kit:om` | Det längre svaret på vad pluginen är — **och vad det inte är och inte kan** |
 
 Vill du hellre välja i en meny finns skillarna under `/` — de heter `webapp-kit:` följt av
 skillens namn, t.ex. `webapp-kit:kom-igang`.
@@ -97,15 +97,15 @@ känns innan du kör en hel natt.
 3. Marknadsplatsen heter **`andreas-plugins`** när den dykt upp i listan (namnet på
    *samlingen*, inte på adressen — de behöver inte likna varandra). Installera
    **`webapp-kit`** ur den.
-4. **Börja en ny chatt.** Pluginet laddas när en session startar, så det som redan är
+4. **Börja en ny chatt.** Pluginen laddas när en session startar, så det som redan är
    igång känner inte till det än. Du behöver inte starta om appen eller datorn.
 
 **Så vet du att det funkade:** skriv `/` i chatten och se efter att det finns poster som börjar
 med `webapp-kit:` i listan (det ska vara tio stycken — åtta skills och två kommandon). Skriv sedan `kom igång med webapp-kit`
-så presenterar Claude pluginet och frågar om ditt projekt.
+så presenterar Claude pluginen och frågar om ditt projekt.
 
-Syns inga `webapp-kit:`-poster alls är pluginet inte laddat — börja en ny chatt och titta igen.
-Syns de flesta men inte alla: du har troligen en chatt som startade innan pluginet
+Syns inga `webapp-kit:`-poster alls är pluginen inte laddat — börja en ny chatt och titta igen.
+Syns de flesta men inte alla: du har troligen en chatt som startade innan pluginen
 installerades eller uppdaterades. Skill-listan sätts när sessionen börjar, så en ny chatt
 löser det. **Avinstallera inte** på grund av en enskild post som saknas.
 
@@ -136,7 +136,7 @@ webbprojekt. **`puppeteer-core` och `Pillow` gör det inte** — de installeras 
 det första gången bilder behövs. Vill du hellre köra utan bilder går det bra: allt annat fungerar,
 men be Claude skriva i rapporten varför de saknas.
 
-### Om pluginet ligger i ett privat repo
+### Om pluginen ligger i ett privat repo
 
 Är repot privat (t.ex. för att det delats med enskilda personer i stället för att vara öppet)
 räcker det inte att klistra in adressen — datorn måste också kunna visa **vem du är** mot
@@ -147,7 +147,7 @@ kör inloggningen och säger till när du ska klicka i webbläsaren. Först där
 steg 1–4 ovan. Har du fått en inbjudan till repot: **acceptera den först**, annars ser
 GitHub det som att projektet inte finns.
 
-### Om du vill sluta använda pluginet
+### Om du vill sluta använda pluginen
 
 Avinstallera det i samma plugin-vy som du installerade det i. **Filerna i ditt projekt
 påverkas inte** — `App_vision.md`, `Project_state.md` och de andra är vanliga textfiler som
@@ -165,14 +165,14 @@ node "$CLAUDE_PLUGIN_ROOT/bin/kit-init.mjs" --namn "Projektnamn"
 ```
 
 Det lägger doc-roll-filerna (App_vision / Project_state / Reference / Backlog /
-Project_history) i projektet, plus en `CLAUDE.md` som pekar på pluginets skills, en
+Project_history) i projektet, plus en `CLAUDE.md` som pekar på pluginens skills, en
 `.gitignore` och `docs/`-mappen. **Skriver aldrig över något som redan finns** — säkert att
 köra igen i ett halvuppsatt projekt.
 
 ## Vad som ingår (tekniskt)
 
 > **Härifrån och ned är detaljer för den som vill veta hur det fungerar under huven.**
-> Vill du bara *använda* pluginet är du klar — du behöver inget härifrån. Hoppa till
+> Vill du bara *använda* pluginen är du klar — du behöver inget härifrån. Hoppa till
 > [Doc-roller](#doc-roller-kort) om du är nyfiken på filerna i ditt projekt, eller stäng
 > sidan och skriv `kom igång med webapp-kit` i chatten.
 
@@ -180,7 +180,7 @@ köra igen i ett halvuppsatt projekt.
 
 | Skill | Trigger | Vad den gör |
 |---|---|---|
-| `kom-igang` | "kom igång med webapp-kit", "vad är det här?" | Introducerar pluginet i klartext, sätter upp projektets anteckningsfiler och frågar vad användaren vill göra först |
+| `kom-igang` | "kom igång med webapp-kit", "vad är det här?" | Introducerar pluginen i klartext, sätter upp projektets anteckningsfiler och frågar vad användaren vill göra först |
 | `webapp-batch` | "starta batchjobb", backlog-tabell | Preflight (ett kommando riggar batchen) → interaktiv backlog-widget (läge + prioritet + autonomi-märkning per post) → frågerunda → live HTML-dashboard → körning → slutrapport med testfall |
 | `long-run` | stort/obevakat pass, "nattkörning" | Subagent-per-post-spelbok: eget context per deljobb, sekventiellt för fil-rörande, circuit-breaker, committa per klar post |
 | `breakfast-report` | efter obevakat pass | Fristående HTML-rapport på disk med base64-skärmdumpar + text per åtgärd |
@@ -189,11 +189,11 @@ köra igen i ett halvuppsatt projekt.
 | `illustrate` | "rita en …", diagram/ikon/SVG | Sexstegsprocess med granskningsloop mot korrekthet, tydlighet och skönhet — gäller allt som ska ritas i kod |
 | `doc-hygiene` | "granska dokumentationen", batch-slut | Doc-roll-system (vision/state/reference/backlog/history) + sweep mot dubblering/drift |
 
-**Kommandon** (`commands/`): `/webapp-kit:hjalp` (vad du kan göra just nu) och `/webapp-kit:om` (vad pluginet är, gör bra, och inte är). De skiljer sig från skillarna genom att de bara svarar — de startar inget arbete.
+**Kommandon** (`commands/`): `/webapp-kit:hjalp` (vad du kan göra just nu) och `/webapp-kit:om` (vad pluginen är, gör bra, och inte är). De skiljer sig från skillarna genom att de bara svarar — de startar inget arbete.
 
 **Agent:** `batch-worker` — subagent-typen som utför en enskild batch-post i eget context och returnerar en kort sammanfattning.
 
-**Hooks:** fyra skript, registrerade sju gånger över fem händelser (`hooks/hooks.json`). Vid **SessionStart**: `projektkort.py` (projektets grundfakta, tyst i projekt utan `Project_state.md`), `session-pointer.sh` (pekare till pluginets ingångar, anpassar sig efter om projektet är uppsatt) och `runtime-status.py` (arbetsbudget). `runtime-status.py` kör dessutom vid **UserPromptSubmit**, **PostToolUse** och **SubagentStop** — det är den som skriver `[arbetsbudget]`-raden. Vid **PreToolUse på `Agent`**: `batch-guard.mjs`, som påminner om riggning, arbetsbudget, verifierar-steget och om att subagenters leverans ska till fil. Ingen av dem blockerar något.
+**Hooks:** fyra skript, registrerade sju gånger över fem händelser (`hooks/hooks.json`). Vid **SessionStart**: `projektkort.py` (projektets grundfakta, tyst i projekt utan `Project_state.md`), `session-pointer.sh` (pekare till pluginens ingångar, anpassar sig efter om projektet är uppsatt) och `runtime-status.py` (arbetsbudget). `runtime-status.py` kör dessutom vid **UserPromptSubmit**, **PostToolUse** och **SubagentStop** — det är den som skriver `[arbetsbudget]`-raden. Vid **PreToolUse på `Agent`**: `batch-guard.mjs`, som påminner om riggning, arbetsbudget, verifierar-steget och om att subagenters leverans ska till fil. Ingen av dem blockerar något.
 
 **bin/** — genericerad tooling, alla tretton: `kit-init.mjs` (sätter upp ett projekt, se ovan; `--kolla` verifierar förutsättningarna), `batch-preflight.mjs` (riggar en batch, se nedan), `batch-guard.mjs` (hooken på `Agent`), `session-pointer.sh` + `projektkort.py` + `runtime-status.py` (de tre SessionStart-hookarna), `shot.mjs` (element-skärmdump), `granska-bild.mjs` (granskningslägen + pixeldiff för illustrationer), `krav-puppeteer.mjs` (delat krav-fel för de två föregående), `compose.py` (före/efter-komposit), `batch-bg.py` (dashboard-bakgrund), `check-design-tokens.mjs` (token-lint: hårdkodade färger + spacing), `wireframe.html` (wireframe-editor, se nedan).
 
@@ -228,7 +228,7 @@ räcker bara för den första av dem.
 ### wireframe.html — skissa layout och lämna över till Claude
 
 Säg **"öppna wireframe-verktyget"** i chatten så öppnar Claude filen i din webbläsare (den
-ligger inuti pluginet — du behöver inte leta upp den på disk). Ingen server, inga beroenden.
+ligger inuti pluginen — du behöver inte leta upp den på disk). Ingen server, inga beroenden.
 Dra i rutnätet för att skapa rutor, namnge dem och skriv en kommentar per ruta. **Kopiera för
 Claude** lägger en markdown-tabell på urklipp som du klistrar in i chatten.
 
@@ -275,6 +275,6 @@ templates/                    dashboard-mall + urvalswidget + projekt-skelett + 
 
 ## Ursprung & bakgrund
 
-Destillerat ur filer i det projekt pluginet växte fram i (de ligger alltså inte här):
+Destillerat ur filer i det projekt pluginen växte fram i (de ligger alltså inte här):
 `CLAUDE.md`, `docs/batch-jobb-process.md`,
 `docs/breakfast-report-plan.md`, `docs/design-process.md` och design-workflow-utredningen.

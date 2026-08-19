@@ -55,7 +55,7 @@ som uppgraderingsväg och för terminal-CLI:t. Den sökvägen är absolut och an
 
 ⚠️ **Hook-kommandon körs genom skalet.** En sökväg med mellanslag (`~/Claude stuff/…`) måste
 citeras, annars bryts kommandot vid mellanslaget och hooken tiger utan felmeddelande — mätt
-2026-08-01. `$CLAUDE_PLUGIN_ROOT` är mellanslagsfri, så pluginets egna hookar berörs inte.
+2026-08-01. `$CLAUDE_PLUGIN_ROOT` är mellanslagsfri, så pluginens egna hookar berörs inte.
 
 ## Ad hoc
 

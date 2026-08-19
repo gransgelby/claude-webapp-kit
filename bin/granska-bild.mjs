@@ -8,7 +8,7 @@
 //
 // Beroende: `puppeteer-core` — saknas det avslutar skriptet med kod 3 och ett läsbart
 // krav-fel (bin/krav-puppeteer.mjs), aldrig med en rå ERR_MODULE_NOT_FOUND-stack.
-// Paketet slås upp från PROJEKTET (CLAUDE_PROJECT_DIR → cwd → pluginet), så `npm i -D
+// Paketet slås upp från PROJEKTET (CLAUDE_PROJECT_DIR → cwd → pluginen), så `npm i -D
 // puppeteer-core` i projektroten räcker — skriptet behöver inte längre kopieras in någonstans.
 // Kräver en installerad Chrome; sätt CHROME_PATH om den ligger annorlunda.
 //

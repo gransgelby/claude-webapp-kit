@@ -33,10 +33,10 @@ kör innan du föreslår verktyg**:
 
 ## Pipelinen (ny app eller ny vy)
 
-1. **Wireframes + kravdokument** per vy. **Pluginet har ett skissverktyg** — öppna
+1. **Wireframes + kravdokument** per vy. **Pluginen har ett skissverktyg** — öppna
    `${CLAUDE_PLUGIN_ROOT}/bin/wireframe.html` i användarens webbläsare när hen säger *"öppna
    wireframe-verktyget"*, *"jag vill skissa"* eller när ett nytt vy-arbete inleds. Användaren
-   vet inte var pluginet ligger på disk, så **öppna filen åt hen** (`open`/`xdg-open`, eller
+   vet inte var pluginen ligger på disk, så **öppna filen åt hen** (`open`/`xdg-open`, eller
    servera den lokalt) — be aldrig hen leta upp den. Rutorna snäpper till kolumn- och radspann,
    och knappen *Kopiera för Claude* lägger en tabell på urklipp som hen klistrar in i chatten.
    Lo-fi räcker i övrigt (Figma-boxar eller handritat) — det här handlar om **struktur & beteende**, ingen visuell polish än. Numrera skärmar/regioner så kravdokumentets referenser blir entydiga.

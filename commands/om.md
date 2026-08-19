@@ -40,7 +40,7 @@ Säg det här rakt ut — det är ingen brasklapp, det är förväntanshantering
 - **Det bygger inte appen åt dig i stället för Claude.** Det är ett arbetssätt, inte en
   app-generator. Allt arbete görs fortfarande av Claude, i en vanlig chatt.
 - **Det gör dig inte oberoende av Claude Code.** Du behöver fortfarande ha programmet igång
-  på din dator; pluginet är ingen egen tjänst och kör ingenting av sig självt.
+  på din dator; pluginen är ingen egen tjänst och kör ingenting av sig självt.
 - **Det kan inte ta skärmdumpar utan Google Chrome** på datorn, plus ett hjälpprogram som
   Claude installerar i projektet första gången bilder behövs. Utan det fungerar allt annat —
   men du får inga bilder, och den visuella finjusteringen faller bort.
@@ -50,7 +50,7 @@ Säg det här rakt ut — det är ingen brasklapp, det är förväntanshantering
   Claude det rakt ut och kör den enklare vägen.
 - **Ett långt pass kostar kvot.** En natts arbete drar en rejäl del av din Claude-förbrukning.
   Claude håller koll och säger till i förväg när utrymmet börjar ta slut, men det är gratis
-  bara i den meningen att pluginet inte kostar något extra.
+  bara i den meningen att pluginen inte kostar något extra.
 - **Kvalitetskontrollen är inte allvetande.** Den fångar hårdkodade värden skrivna på ett
   visst sätt, men inte alla. Den säger själv vad den inte prövat — läs den raden.
 - **Det ångrar inte åt dig automatiskt.** Säkerhetskopior per steg finns bara om projektet
@@ -58,7 +58,7 @@ Säg det här rakt ut — det är ingen brasklapp, det är förväntanshantering
 
 ## Om något inte stämmer
 
-Pluginet är byggt för att säga ifrån hellre än att gissa. Läser du något som ser trasigt ut,
+Pluginen är byggt för att säga ifrån hellre än att gissa. Läser du något som ser trasigt ut,
 eller ett besked du inte förstår — fråga. Det är alltid textens fel, aldrig ditt.
 
 **Vad du kan göra just nu:** `/webapp-kit:hjalp`

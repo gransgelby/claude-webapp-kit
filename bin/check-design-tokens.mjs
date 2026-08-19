@@ -69,10 +69,10 @@ function walk(dir) {
     const s = statSync(p)
     //: hoppas FÖRE rekursionen — annars vandrar linten ned i beroenden och rapporterar
     //: tusentals främmande filer som "granskade".
-    //: ⚠️ `reports/` MÅSTE hoppas. Det är pluginets egen utdata, inte användarens källkod:
+    //: ⚠️ `reports/` MÅSTE hoppas. Det är pluginens egen utdata, inte användarens källkod:
     //: batch-preflight kopierar in dashboard-mallen dit, och den bär Tailwind-liknande
     //: klassnamn. Uppmätt 2026-08-18: samma app gav "inte tillämplig" FÖRE preflight och ett
-    //: grönt ✓ EFTER — pluginet slog alltså ut sin egen sanningskontroll, och grönt betydde
+    //: grönt ✓ EFTER — pluginen slog alltså ut sin egen sanningskontroll, och grönt betydde
     //: "jag läste min egen mall". Samma skäl gäller granskningsutdata och byggkataloger.
     const HOPPA = ['node_modules', '.git', 'dist', 'build', 'coverage', 'reports', 'granskning', '.next']
     if (HOPPA.includes(name)) continue
@@ -122,7 +122,7 @@ if (scanned === 0) {
 // räknades och fick ett grönt kvitto. Reglerna nedan matchar bara Tailwind-klasser
 // (`bg-[#0f172a]`, `py-[5px]`), så en fil utan Tailwind kan aldrig träffa dem. Grönt på en
 // sådan fil är inte ett tomt resultat — det är ett osant påstående, och det enda tillfälle
-// under hela granskningen då pluginet berättade något falskt för användaren.
+// under hela granskningen då pluginen berättade något falskt för användaren.
 const TAILWIND_SPÅR = /\b(?:class|className)\s*=\s*["'`][^"'`]*\b(?:flex|grid|hidden|rounded|shadow|[pm][xytblr]?-\d|gap-\d|text-(?:xs|sm|base|lg|xl|\[)|bg-[\w[])/
 const KONFIG = ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.mjs', 'tailwind.config.cjs']
 const harTailwind =

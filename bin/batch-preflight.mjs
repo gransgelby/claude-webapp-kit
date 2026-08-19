@@ -35,7 +35,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const HÄR = path.dirname(fileURLToPath(import.meta.url));
-//: pluginets rot. Miljövariabeln finns när Claude kör oss; annars ligger vi i <rot>/bin/.
+//: pluginens rot. Miljövariabeln finns när Claude kör oss; annars ligger vi i <rot>/bin/.
 const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || path.resolve(HÄR, "..");
 const PROJEKT = process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
